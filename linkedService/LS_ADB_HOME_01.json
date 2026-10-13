@@ -1,0 +1,17 @@
+{
+	"name": "LS_ADB_HOME_01",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405619800828769.9.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/52b15d43-b28e-4647-9022-f0fb09fe4fbc/resourceGroups/practice-001/providers/Microsoft.Databricks/workspaces/adb-dev-home-01",
+			"newClusterNodeType": "Standard_DS3_v2",
+			"newClusterNumOfWorker": "1",
+			"newClusterVersion": "14.3.x-scala2.12",
+			"clusterOption": "Fixed",
+			"newClusterInitScripts": []
+		}
+	}
+}
