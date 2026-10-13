@@ -1,0 +1,15 @@
+{
+	"name": "ADF-DEV-HOME-01",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "northeurope",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "2865e2ca-f847-44bc-b35b-ff455830d496",
+		"tenantId": "1e0e2561-cf80-4309-8766-5dd5d32fa8a8"
+	}
+}
