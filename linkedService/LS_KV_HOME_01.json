@@ -1,0 +1,10 @@
+{
+	"name": "LS_KV_HOME_01",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://akv-dev-home-01.vault.azure.net/"
+		}
+	}
+}
