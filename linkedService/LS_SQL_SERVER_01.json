@@ -1,0 +1,27 @@
+{
+	"name": "LS_SQL_SERVER_01",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"server": "EC2AMAZ-B7776UI\\SQLEXPRESS",
+			"database": "DemoDB",
+			"encrypt": "mandatory",
+			"trustServerCertificate": true,
+			"authenticationType": "SQL",
+			"userName": "sa",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KV_HOME_01",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "aws-sql-pass"
+			}
+		},
+		"connectVia": {
+			"referenceName": "EC2-SQL-IR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
