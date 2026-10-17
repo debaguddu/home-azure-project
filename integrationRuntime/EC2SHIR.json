@@ -1,0 +1,6 @@
+{
+	"name": "EC2SHIR",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}
