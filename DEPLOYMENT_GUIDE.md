@@ -80,11 +80,9 @@ The updated notebook is located in [databricks/notebooks/](file:///c:/Debaranjan
 - `nb_incremental_landing_to_raw.ipynb`
 
 ### Deployment Steps:
-1. In the Databricks workspace, navigate to **Workspace** $\rightarrow$ **Shared** $\rightarrow$ **`home_azure_project`**.
-2. Right-click inside `home_azure_project` $\rightarrow$ **Import**.
-3. Select and upload [nb_incremental_landing_to_raw.ipynb](file:///c:/Debaranjan/Git_Projects/home-azure-project/databricks/notebooks/nb_incremental_landing_to_raw.ipynb) (choose Overwrite if already present).
-4. Verify the path is:
-   `/Shared/home_azure_project/nb_incremental_landing_to_raw`
+1. In the Databricks workspace, clone the repo into **Workspace** $\rightarrow$ **Shared** $\rightarrow$ **`home-azure-project`** under branch `project01`.
+2. The notebook path in ADF is configured to:
+   `/Shared/home-azure-project/databricks/notebooks/nb_incremental_landing_to_raw`
 
 ---
 

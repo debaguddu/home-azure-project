@@ -64,7 +64,7 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"notebookPath": "/Shared/home_azure_project/nb_incremental_landing_to_raw",
+								"notebookPath": "/Shared/home-azure-project/databricks/notebooks/nb_incremental_landing_to_raw",
 								"baseParameters": {
 									"source_table_name": {
 										"value": "@pipeline().parameters.SourceTableName",
