@@ -51,24 +51,44 @@ Run the SQL scripts located in the `sql/` folder against `sqldb-azureproject-dev
 
 ---
 
-## 3. Step 2: Deploy Databricks Notebook
-The Databricks notebook is located in [databricks/notebooks/](file:///c:/Debaranjan/Git_Projects/home-azure-project/databricks/notebooks):
+## 3. Step 2: Configure Azure Databricks Unity Catalog & Secrets
+
+### A. Create Azure Key Vault-Backed Secret Scope in Databricks
+1. Log into your Databricks workspace: `https://adb-7405612959366844.4.azuredatabricks.net`
+2. In your browser URL address bar, append `#secrets/createScope`:
+   `https://adb-7405612959366844.4.azuredatabricks.net#secrets/createScope`
+3. Enter the following details:
+   - **Scope Name**: `akv-scope`
+   - **Manage Principal**: `Creator`
+   - **DNS Name**: `https://kv-azureproject-dev-01.vault.azure.net/`
+   - **Resource ID**: `/subscriptions/841c4ab4-2ea9-4426-813d-9791abc4cff3/resourceGroups/rg-azureproject-dev-01/providers/Microsoft.KeyVault/vaults/kv-azureproject-dev-01`
+4. Click **Create**. You can now read secrets using: `dbutils.secrets.get(scope="akv-scope", key="<secret-name>")`.
+
+### B. Unity Catalog DDL (Storage Credential, External Locations, 4 Catalogs & Volume)
+1. In Databricks, open the **SQL Editor** or a new SQL notebook.
+2. Run the script [databricks/sql/01_unity_catalog_setup.sql](file:///c:/Debaranjan/Git_Projects/home-azure-project/databricks/sql/01_unity_catalog_setup.sql):
+   - **Storage Credential**: `adls_storage_credential` (using pre-created Managed Identity Access Connector `ac-dbw-azureproject-dev-01`).
+   - **External Locations**: `ext_loc_landing`, `ext_loc_raw`, `ext_loc_bronze`, `ext_loc_silver`, `ext_loc_gold`.
+   - **4 Catalogs**: `landing_catalog`, `bronze_catalog`, `silver_catalog`, `gold_catalog`.
+   - **External Volume**: `landing_catalog.source_sql.landing_volume` pointing to `abfss://landing@azureprojectdevadls01.dfs.core.windows.net/`.
+
+---
+
+## 4. Step 3: Deploy Updated Databricks Notebook
+The updated notebook is located in [databricks/notebooks/](file:///c:/Debaranjan/Git_Projects/home-azure-project/databricks/notebooks):
 - `nb_incremental_landing_to_raw.py`
 - `nb_incremental_landing_to_raw.ipynb`
 
 ### Deployment Steps:
-1. Open the Azure Databricks workspace `dbw-azureproject-dev-01` (`https://adb-7405612959366844.4.azuredatabricks.net`).
-2. In the left navigation, click **Workspace** $\rightarrow$ **Shared**.
-3. Create a folder named **`home_azure_project`**.
-4. Right-click inside `home_azure_project` $\rightarrow$ **Import**.
-5. Select and upload [nb_incremental_landing_to_raw.ipynb](file:///c:/Debaranjan/Git_Projects/home-azure-project/databricks/notebooks/nb_incremental_landing_to_raw.ipynb).
-6. Verify the path is:
+1. In the Databricks workspace, navigate to **Workspace** $\rightarrow$ **Shared** $\rightarrow$ **`home_azure_project`**.
+2. Right-click inside `home_azure_project` $\rightarrow$ **Import**.
+3. Select and upload [nb_incremental_landing_to_raw.ipynb](file:///c:/Debaranjan/Git_Projects/home-azure-project/databricks/notebooks/nb_incremental_landing_to_raw.ipynb) (choose Overwrite if already present).
+4. Verify the path is:
    `/Shared/home_azure_project/nb_incremental_landing_to_raw`
-   *(This exact path is pre-configured in ADF Child Pipeline 2)*.
 
 ---
 
-## 4. Step 3: Git Commit & Sync to ADF Studio
+## 5. Step 4: Git Commit & Sync to ADF Studio
 Commit and push the new ADF pipelines, datasets, and Databricks notebooks to `origin/project01`:
 ```powershell
 git add .

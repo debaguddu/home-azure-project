@@ -94,7 +94,12 @@
 									"mandatory_columns": {
 										"value": "@pipeline().parameters.MandatoryColumns",
 										"type": "Expression"
-									}
+									},
+									"volume_catalog": "landing_catalog",
+									"volume_schema": "source_sql",
+									"volume_name": "landing_volume",
+									"target_catalog": "bronze_catalog",
+									"target_schema": "raw_data"
 								}
 							},
 							"linkedServiceName": {
