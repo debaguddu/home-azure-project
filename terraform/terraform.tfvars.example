@@ -1,0 +1,34 @@
+# ==============================================================================
+# Sample Parameter Configuration for Azure Free Tier Deployment
+# ==============================================================================
+
+# Target Azure Regions
+location     = "northeurope"
+sql_location = "centralus"
+
+# Project Identifier & Environment
+project_identifier = "azureproject"
+environment        = "dev"
+
+# Account Switching Index (e.g. 01, 02, 03)
+instance = "01"
+
+# Containers
+adls_containers = ["raw", "bronze", "silver", "gold"]
+blob_containers = ["landing"]
+
+# SQL Credentials
+sql_admin_username = "admin001"
+sql_admin_password = "YourSecurePasswordHere!"
+asql_password      = "YourSecurePasswordHere!"
+aws_sql_password   = "YourSecurePasswordHere!"
+
+# Databricks SKU
+databricks_sku = "premium"
+
+# Tags
+tags = {
+  Project     = "azureproject"
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+}
