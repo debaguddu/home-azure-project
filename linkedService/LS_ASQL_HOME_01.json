@@ -7,7 +7,7 @@
 			"server": "sql-azureproject-dev-cus-01.database.windows.net",
 			"database": "sqldb-azureproject-dev-01",
 			"encrypt": "mandatory",
-			"trustServerCertificate": false,
+			"trustServerCertificate": true,
 			"authenticationType": "SQL",
 			"userName": "admin001",
 			"password": {
