@@ -7,9 +7,12 @@
 -- ==============================================================================
 
 -- 1. Create Storage Credential using the Access Connector Managed Identity
-CREATE STORAGE CREDENTIAL IF NOT EXISTS `adls_storage_credential`
-WITH AZURE_MANAGED_IDENTITY (
-  RESOURCE_ID = '/subscriptions/841c4ab4-2ea9-4426-813d-9791abc4cff3/resourceGroups/rg-azureproject-dev-01/providers/Microsoft.Databricks/accessConnectors/ac-dbw-azureproject-dev-01'
+-- Note: Databricks SQL syntax does NOT use "IF NOT EXISTS" for storage credentials.
+CREATE STORAGE CREDENTIAL `adls_storage_credential`
+WITH (
+  AZURE_MANAGED_IDENTITY = (
+    ACCESS_CONNECTOR_ID = '/subscriptions/841c4ab4-2ea9-4426-813d-9791abc4cff3/resourceGroups/rg-azureproject-dev-01/providers/Microsoft.Databricks/accessConnectors/ac-dbw-azureproject-dev-01'
+  )
 )
 COMMENT 'Managed Identity Access Connector (ac-dbw-azureproject-dev-01) for ADLS Gen2';
 
