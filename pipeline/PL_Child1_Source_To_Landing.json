@@ -149,7 +149,7 @@
 											"type": "Expression"
 										},
 										"Directory": {
-											"value": "@concat(pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
+											"value": "@concat('home/datalake/claims/', pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
 											"type": "Expression"
 										},
 										"FileName": {
@@ -222,7 +222,7 @@
 											"type": "Expression"
 										},
 										"Directory": {
-											"value": "@concat(pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
+											"value": "@concat('home/datalake/claims/', pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
 											"type": "Expression"
 										},
 										"FileName": {

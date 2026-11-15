@@ -99,7 +99,8 @@
 									"volume_schema": "source_sql",
 									"volume_name": "landing_volume",
 									"target_catalog": "bronze_catalog",
-									"target_schema": "raw_data"
+									"target_schema": "raw_data",
+									"folder_prefix": "home/datalake/claims"
 								}
 							},
 							"linkedServiceName": {
@@ -194,7 +195,7 @@
 											"type": "Expression"
 										},
 										"Directory": {
-											"value": "@concat(pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
+											"value": "@concat('home/datalake/claims/', pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
 											"type": "Expression"
 										},
 										"FileName": "*"
@@ -211,7 +212,7 @@
 											"type": "Expression"
 										},
 										"Directory": {
-											"value": "@pipeline().parameters.SourceTableName",
+											"value": "@concat('home/datalake/claims/', pipeline().parameters.SourceTableName)",
 											"type": "Expression"
 										},
 										"FileName": {

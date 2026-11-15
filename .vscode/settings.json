@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "connectionMethod": "Hostname and Token",
+            "catalog": "bronze_catalog",
+            "previewLimit": 50,
+            "driver": "Databricks",
+            "name": "ADB",
+            "host": "adb-7405612959366844.4.azuredatabricks.net",
+            "schema": "raw_data",
+            "path": "/sql/1.0/warehouses/a319e198707ee8bf"
+        }
+    ]
+}
