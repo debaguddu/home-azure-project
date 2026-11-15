@@ -1,6 +1,0 @@
-{
-	"name": "EC2-SQL-IR",
-	"properties": {
-		"type": "SelfHosted"
-	}
-}
