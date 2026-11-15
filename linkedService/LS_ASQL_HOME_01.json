@@ -4,8 +4,8 @@
 		"annotations": [],
 		"type": "AzureSqlDatabase",
 		"typeProperties": {
-			"server": "asql-dev-home-01.database.windows.net",
-			"database": "asqldb-dev-home-01",
+			"server": "sql-azureproject-dev-cus-01.database.windows.net",
+			"database": "sqldb-azureproject-dev-01",
 			"encrypt": "mandatory",
 			"trustServerCertificate": false,
 			"authenticationType": "SQL",

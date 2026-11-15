@@ -4,9 +4,9 @@
 		"annotations": [],
 		"type": "AzureDatabricks",
 		"typeProperties": {
-			"domain": "https://adb-7405619800828769.9.azuredatabricks.net",
+			"domain": "https://adb-7405612959366844.4.azuredatabricks.net",
 			"authentication": "MSI",
-			"workspaceResourceId": "/subscriptions/52b15d43-b28e-4647-9022-f0fb09fe4fbc/resourceGroups/practice-001/providers/Microsoft.Databricks/workspaces/adb-dev-home-01",
+			"workspaceResourceId": "/subscriptions/841c4ab4-2ea9-4426-813d-9791abc4cff3/resourceGroups/rg-azureproject-dev-01/providers/Microsoft.Databricks/workspaces/dbw-azureproject-dev-01",
 			"newClusterNodeType": "Standard_DS3_v2",
 			"newClusterNumOfWorker": "1",
 			"newClusterVersion": "14.3.x-scala2.12",

@@ -4,7 +4,7 @@
 		"annotations": [],
 		"type": "AzureKeyVault",
 		"typeProperties": {
-			"baseUrl": "https://akv-dev-home-01.vault.azure.net/"
+			"baseUrl": "https://kv-azureproject-dev-01.vault.azure.net/"
 		}
 	}
 }
