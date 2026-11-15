@@ -1,0 +1,349 @@
+{
+	"name": "PL_Child2_Landing_To_Bronze_Raw",
+	"properties": {
+		"description": "Child Pipeline 2: Processes landed data to Bronze (Full Load replacement) or executes Databricks Notebook (Incremental) to perform DQ checks and write Delta in Raw layer, returning updated watermark value.",
+		"activities": [
+			{
+				"name": "Lookup_Log_Child2_Start",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Child2_Landing_To_Bronze_Raw'', @TableID = ', string(pipeline().parameters.TableID), ', @TableName = ''', pipeline().parameters.SourceTableName, ''', @LoadType = ''', pipeline().parameters.LoadType, '''; SELECT ''', pipeline().RunId, ''' AS RunId;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "If_Is_Incremental",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Log_Child2_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(toUpper(pipeline().parameters.LoadType), 'INCREMENTAL')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Databricks_Notebook_Incremental",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Shared/home_azure_project/nb_incremental_landing_to_raw",
+								"baseParameters": {
+									"source_table_name": {
+										"value": "@pipeline().parameters.SourceTableName",
+										"type": "Expression"
+									},
+									"folder_date": {
+										"value": "@formatDateTime(utcnow(), 'yyyy/MM/dd')",
+										"type": "Expression"
+									},
+									"landing_container": {
+										"value": "@pipeline().parameters.TargetContainerLanding",
+										"type": "Expression"
+									},
+									"raw_container": {
+										"value": "@pipeline().parameters.TargetContainerRaw",
+										"type": "Expression"
+									},
+									"storage_account_name": "azureprojectdevadls01",
+									"watermark_column": {
+										"value": "@pipeline().parameters.WatermarkColumn",
+										"type": "Expression"
+									},
+									"primary_keys": {
+										"value": "@pipeline().parameters.PrimaryKeys",
+										"type": "Expression"
+									},
+									"mandatory_columns": {
+										"value": "@pipeline().parameters.MandatoryColumns",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_ADB_HOME_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Lookup_Update_Watermark",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Databricks_Notebook_Incremental",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.00:05:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat('EXEC [dbo].[sp_UpdateWatermark] @TableID = ', string(pipeline().parameters.TableID), ', @NewWatermarkValue = ''', string(activity('Databricks_Notebook_Incremental').output.runOutput.max_watermark_value), '''; SELECT ''WatermarkUpdated'' AS Status;')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_ASQL_Generic",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": "dbo",
+										"TableName": "WatermarkTable"
+									}
+								}
+							}
+						}
+					],
+					"ifFalseActivities": [
+						{
+							"name": "Copy_Landing_To_Bronze_Full",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFileName": "*.csv",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_ADLS_Landing_CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": {
+											"value": "@pipeline().parameters.TargetContainerLanding",
+											"type": "Expression"
+										},
+										"Directory": {
+											"value": "@concat(pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
+											"type": "Expression"
+										},
+										"FileName": "*"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_ADLS_Bronze_CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": {
+											"value": "@pipeline().parameters.TargetContainerBronze",
+											"type": "Expression"
+										},
+										"Directory": {
+											"value": "@pipeline().parameters.SourceTableName",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@concat(pipeline().parameters.SourceTableName, '.csv')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_Log_Child2_End_Success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If_Is_Incremental",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_Child2_End_Failed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If_Is_Incremental",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Child 2 Landing to Bronze/Raw Failed''; SELECT ''Failed'' AS Status;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "String"
+			},
+			"TableID": {
+				"type": "Int"
+			},
+			"SourceSchema": {
+				"type": "String",
+				"defaultValue": "dbo"
+			},
+			"SourceTableName": {
+				"type": "String"
+			},
+			"LoadType": {
+				"type": "String",
+				"defaultValue": "Incremental"
+			},
+			"WatermarkColumn": {
+				"type": "String",
+				"defaultValue": "ModifiedDate"
+			},
+			"TargetContainerLanding": {
+				"type": "String",
+				"defaultValue": "landing"
+			},
+			"TargetContainerBronze": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"TargetContainerRaw": {
+				"type": "String",
+				"defaultValue": "raw"
+			},
+			"PrimaryKeys": {
+				"type": "String",
+				"defaultValue": ""
+			},
+			"MandatoryColumns": {
+				"type": "String",
+				"defaultValue": ""
+			},
+			"SendAlert": {
+				"type": "String",
+				"defaultValue": "Y"
+			}
+		},
+		"annotations": []
+	}
+}

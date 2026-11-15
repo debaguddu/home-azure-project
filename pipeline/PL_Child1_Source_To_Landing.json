@@ -1,0 +1,349 @@
+{
+	"name": "PL_Child1_Source_To_Landing",
+	"properties": {
+		"description": "Child Pipeline 1: Ingests data from On-Premises SQL Server (DemoDB) to ADLS Gen2 Landing Zone partitioned by YYYY/MM/DD.",
+		"activities": [
+			{
+				"name": "Lookup_Log_Child1_Start",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Child1_Source_To_Landing'', @TableID = ', string(pipeline().parameters.TableID), ', @TableName = ''', pipeline().parameters.SourceTableName, ''', @LoadType = ''', pipeline().parameters.LoadType, '''; SELECT ''', pipeline().RunId, ''' AS RunId;')" ,
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "If_Is_Incremental",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Log_Child1_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(toUpper(pipeline().parameters.LoadType), 'INCREMENTAL')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Lookup_Get_Watermark",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:05:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat('SELECT WatermarkValue FROM [dbo].[WatermarkTable] WHERE TableID = ', string(pipeline().parameters.TableID))",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_ASQL_Generic",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": "dbo",
+										"TableName": "WatermarkTable"
+									}
+								}
+							}
+						},
+						{
+							"name": "Copy_Source_To_Landing_Incremental",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Lookup_Get_Watermark",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@concat('SELECT * FROM [', pipeline().parameters.SourceSchema, '].[', pipeline().parameters.SourceTableName, '] WHERE [', pipeline().parameters.WatermarkColumn, '] > ''', activity('Lookup_Get_Watermark').output.firstRow.WatermarkValue, '''')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_SQL_Source",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": {
+											"value": "@pipeline().parameters.SourceSchema",
+											"type": "Expression"
+										},
+										"TableName": {
+											"value": "@pipeline().parameters.SourceTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_ADLS_Landing_CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": {
+											"value": "@pipeline().parameters.TargetContainerLanding",
+											"type": "Expression"
+										},
+										"Directory": {
+											"value": "@concat(pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@concat(pipeline().parameters.SourceTableName, '_', formatDateTime(utcnow(), 'yyyyMMdd_HHmmss'), '.csv')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					],
+					"ifFalseActivities": [
+						{
+							"name": "Copy_Source_To_Landing_Full",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.01:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@concat('SELECT * FROM [', pipeline().parameters.SourceSchema, '].[', pipeline().parameters.SourceTableName, ']')",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_SQL_Source",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": {
+											"value": "@pipeline().parameters.SourceSchema",
+											"type": "Expression"
+										},
+										"TableName": {
+											"value": "@pipeline().parameters.SourceTableName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_ADLS_Landing_CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"Container": {
+											"value": "@pipeline().parameters.TargetContainerLanding",
+											"type": "Expression"
+										},
+										"Directory": {
+											"value": "@concat(pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@concat(pipeline().parameters.SourceTableName, '_', formatDateTime(utcnow(), 'yyyyMMdd_HHmmss'), '.csv')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_Log_Child1_End_Success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If_Is_Incremental",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_Child1_End_Failed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If_Is_Incremental",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Child 1 Source to Landing Ingestion Failed''; SELECT ''Failed'' AS Status;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "String"
+			},
+			"TableID": {
+				"type": "Int"
+			},
+			"SourceSchema": {
+				"type": "String",
+				"defaultValue": "dbo"
+			},
+			"SourceTableName": {
+				"type": "String"
+			},
+			"LoadType": {
+				"type": "String",
+				"defaultValue": "Incremental"
+			},
+			"WatermarkColumn": {
+				"type": "String",
+				"defaultValue": "ModifiedDate"
+			},
+			"TargetContainerLanding": {
+				"type": "String",
+				"defaultValue": "landing"
+			},
+			"SendAlert": {
+				"type": "String",
+				"defaultValue": "Y"
+			}
+		},
+		"annotations": []
+	}
+}

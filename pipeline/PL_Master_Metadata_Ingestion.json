@@ -1,0 +1,323 @@
+{
+	"name": "PL_Master_Metadata_Ingestion",
+	"properties": {
+		"description": "Master Orchestrator Pipeline: Logs batch start, fetches active metadata from Azure SQL DB based on TriggerName and LoadType, verifies table count, and executes Child Pipelines 1 and 2 in parallel across tables.",
+		"activities": [
+			{
+				"name": "Lookup_Log_Batch_Start",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', pipeline().RunId, ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Master_Metadata_Ingestion'', @TableID = NULL, @TableName = NULL, @LoadType = ''', pipeline().parameters.LoadType, '''; SELECT ''', pipeline().RunId, ''' AS BatchID;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Get_Metadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Log_Batch_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('SELECT TableID, TriggerName, SourceSchema, SourceTableName, LoadType, WatermarkColumn, TargetContainerLanding, TargetContainerBronze, TargetContainerRaw, IsActive, SendAlert, PrimaryKeys, MandatoryColumns FROM [dbo].[IngestionMetadata] WHERE TriggerName = ''', pipeline().parameters.TriggerName, ''' AND LoadType = ''', pipeline().parameters.LoadType, ''' AND IsActive = ''Y'';')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "IngestionMetadata"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "If_Tables_Exist",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Get_Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('Lookup_Get_Metadata').output.count, 0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "ForEach_Table",
+							"type": "ForEach",
+							"dependsOn": [],
+							"typeProperties": {
+								"items": {
+									"value": "@activity('Lookup_Get_Metadata').output.value",
+									"type": "Expression"
+								},
+								"isSequential": false,
+								"batchCount": 5,
+								"activities": [
+									{
+										"name": "ExecutePipeline_Child1",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"policy": {
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "PL_Child1_Source_To_Landing",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"BatchID": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"TableID": {
+													"value": "@item().TableID",
+													"type": "Expression"
+												},
+												"SourceSchema": {
+													"value": "@item().SourceSchema",
+													"type": "Expression"
+												},
+												"SourceTableName": {
+													"value": "@item().SourceTableName",
+													"type": "Expression"
+												},
+												"LoadType": {
+													"value": "@item().LoadType",
+													"type": "Expression"
+												},
+												"WatermarkColumn": {
+													"value": "@coalesce(item().WatermarkColumn, '')",
+													"type": "Expression"
+												},
+												"TargetContainerLanding": {
+													"value": "@item().TargetContainerLanding",
+													"type": "Expression"
+												},
+												"SendAlert": {
+													"value": "@item().SendAlert",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "ExecutePipeline_Child2",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "ExecutePipeline_Child1",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "PL_Child2_Landing_To_Bronze_Raw",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"BatchID": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"TableID": {
+													"value": "@item().TableID",
+													"type": "Expression"
+												},
+												"SourceSchema": {
+													"value": "@item().SourceSchema",
+													"type": "Expression"
+												},
+												"SourceTableName": {
+													"value": "@item().SourceTableName",
+													"type": "Expression"
+												},
+												"LoadType": {
+													"value": "@item().LoadType",
+													"type": "Expression"
+												},
+												"WatermarkColumn": {
+													"value": "@coalesce(item().WatermarkColumn, '')",
+													"type": "Expression"
+												},
+												"TargetContainerLanding": {
+													"value": "@item().TargetContainerLanding",
+													"type": "Expression"
+												},
+												"TargetContainerBronze": {
+													"value": "@item().TargetContainerBronze",
+													"type": "Expression"
+												},
+												"TargetContainerRaw": {
+													"value": "@item().TargetContainerRaw",
+													"type": "Expression"
+												},
+												"PrimaryKeys": {
+													"value": "@coalesce(item().PrimaryKeys, '')",
+													"type": "Expression"
+												},
+												"MandatoryColumns": {
+													"value": "@coalesce(item().MandatoryColumns, '')",
+													"type": "Expression"
+												},
+												"SendAlert": {
+													"value": "@item().SendAlert",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_Log_Batch_End_Success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If_Tables_Exist",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().RunId, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_Batch_End_Failed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If_Tables_Exist",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().RunId, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Batch execution failed during metadata ingestion''; SELECT ''Failed'' AS Status;')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"TriggerName": {
+				"type": "String",
+				"defaultValue": "Daily_Trigger"
+			},
+			"LoadType": {
+				"type": "String",
+				"defaultValue": "Incremental"
+			}
+		},
+		"annotations": []
+	}
+}
