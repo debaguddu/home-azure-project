@@ -1,7 +1,7 @@
 {
 	"name": "PL_Master_Metadata_Ingestion",
 	"properties": {
-		"description": "Master Orchestrator Pipeline: Logs batch start, fetches active metadata from Azure SQL DB based on TriggerName and LoadType, verifies table count, and executes Child Pipelines 1 and 2 in parallel across tables.",
+		"description": "Master Orchestrator Pipeline: Logs batch start, fetches active metadata from Azure SQL DB based on TriggerName and LoadType, and executes Child Pipelines 1 and 2 in parallel across tables.",
 		"activities": [
 			{
 				"name": "Lookup_Log_Batch_Start",
@@ -74,8 +74,8 @@
 				}
 			},
 			{
-				"name": "If_Tables_Exist",
-				"type": "IfCondition",
+				"name": "ForEach_Table",
+				"type": "ForEach",
 				"dependsOn": [
 					{
 						"activity": "Lookup_Get_Metadata",
@@ -85,147 +85,134 @@
 					}
 				],
 				"typeProperties": {
-					"expression": {
-						"value": "@greater(activity('Lookup_Get_Metadata').output.count, 0)",
+					"items": {
+						"value": "@activity('Lookup_Get_Metadata').output.value",
 						"type": "Expression"
 					},
-					"ifTrueActivities": [
+					"isSequential": false,
+					"batchCount": 5,
+					"activities": [
 						{
-							"name": "ForEach_Table",
-							"type": "ForEach",
+							"name": "ExecutePipeline_Child1",
+							"type": "ExecutePipeline",
 							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
 							"typeProperties": {
-								"items": {
-									"value": "@activity('Lookup_Get_Metadata').output.value",
-									"type": "Expression"
+								"pipeline": {
+									"referenceName": "PL_Child1_Source_To_Landing",
+									"type": "PipelineReference"
 								},
-								"isSequential": false,
-								"batchCount": 5,
-								"activities": [
-									{
-										"name": "ExecutePipeline_Child1",
-										"type": "ExecutePipeline",
-										"dependsOn": [],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "PL_Child1_Source_To_Landing",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"BatchID": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"TableID": {
-													"value": "@item().TableID",
-													"type": "Expression"
-												},
-												"SourceSchema": {
-													"value": "@item().SourceSchema",
-													"type": "Expression"
-												},
-												"SourceTableName": {
-													"value": "@item().SourceTableName",
-													"type": "Expression"
-												},
-												"LoadType": {
-													"value": "@item().LoadType",
-													"type": "Expression"
-												},
-												"WatermarkColumn": {
-													"value": "@coalesce(item().WatermarkColumn, '')",
-													"type": "Expression"
-												},
-												"TargetContainerLanding": {
-													"value": "@item().TargetContainerLanding",
-													"type": "Expression"
-												},
-												"SendAlert": {
-													"value": "@item().SendAlert",
-													"type": "Expression"
-												}
-											}
-										}
+								"waitOnCompletion": true,
+								"parameters": {
+									"BatchID": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
 									},
-									{
-										"name": "ExecutePipeline_Child2",
-										"type": "ExecutePipeline",
-										"dependsOn": [
-											{
-												"activity": "ExecutePipeline_Child1",
-												"dependencyConditions": [
-													"Succeeded"
-												]
-											}
-										],
-										"policy": {
-											"secureInput": false
-										},
-										"userProperties": [],
-										"typeProperties": {
-											"pipeline": {
-												"referenceName": "PL_Child2_Landing_To_Bronze_Raw",
-												"type": "PipelineReference"
-											},
-											"waitOnCompletion": true,
-											"parameters": {
-												"BatchID": {
-													"value": "@pipeline().RunId",
-													"type": "Expression"
-												},
-												"TableID": {
-													"value": "@item().TableID",
-													"type": "Expression"
-												},
-												"SourceSchema": {
-													"value": "@item().SourceSchema",
-													"type": "Expression"
-												},
-												"SourceTableName": {
-													"value": "@item().SourceTableName",
-													"type": "Expression"
-												},
-												"LoadType": {
-													"value": "@item().LoadType",
-													"type": "Expression"
-												},
-												"WatermarkColumn": {
-													"value": "@coalesce(item().WatermarkColumn, '')",
-													"type": "Expression"
-												},
-												"TargetContainerLanding": {
-													"value": "@item().TargetContainerLanding",
-													"type": "Expression"
-												},
-												"TargetContainerBronze": {
-													"value": "@item().TargetContainerBronze",
-													"type": "Expression"
-												},
-												"TargetContainerRaw": {
-													"value": "@item().TargetContainerRaw",
-													"type": "Expression"
-												},
-												"PrimaryKeys": {
-													"value": "@coalesce(item().PrimaryKeys, '')",
-													"type": "Expression"
-												},
-												"MandatoryColumns": {
-													"value": "@coalesce(item().MandatoryColumns, '')",
-													"type": "Expression"
-												},
-												"SendAlert": {
-													"value": "@item().SendAlert",
-													"type": "Expression"
-												}
-											}
-										}
+									"TableID": {
+										"value": "@item().TableID",
+										"type": "Expression"
+									},
+									"SourceSchema": {
+										"value": "@item().SourceSchema",
+										"type": "Expression"
+									},
+									"SourceTableName": {
+										"value": "@item().SourceTableName",
+										"type": "Expression"
+									},
+									"LoadType": {
+										"value": "@item().LoadType",
+										"type": "Expression"
+									},
+									"WatermarkColumn": {
+										"value": "@coalesce(item().WatermarkColumn, '')",
+										"type": "Expression"
+									},
+									"TargetContainerLanding": {
+										"value": "@item().TargetContainerLanding",
+										"type": "Expression"
+									},
+									"SendAlert": {
+										"value": "@item().SendAlert",
+										"type": "Expression"
 									}
-								]
+								}
+							}
+						},
+						{
+							"name": "ExecutePipeline_Child2",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "ExecutePipeline_Child1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Child2_Landing_To_Bronze_Raw",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"BatchID": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"TableID": {
+										"value": "@item().TableID",
+										"type": "Expression"
+									},
+									"SourceSchema": {
+										"value": "@item().SourceSchema",
+										"type": "Expression"
+									},
+									"SourceTableName": {
+										"value": "@item().SourceTableName",
+										"type": "Expression"
+									},
+									"LoadType": {
+										"value": "@item().LoadType",
+										"type": "Expression"
+									},
+									"WatermarkColumn": {
+										"value": "@coalesce(item().WatermarkColumn, '')",
+										"type": "Expression"
+									},
+									"TargetContainerLanding": {
+										"value": "@item().TargetContainerLanding",
+										"type": "Expression"
+									},
+									"TargetContainerBronze": {
+										"value": "@item().TargetContainerBronze",
+										"type": "Expression"
+									},
+									"TargetContainerRaw": {
+										"value": "@item().TargetContainerRaw",
+										"type": "Expression"
+									},
+									"PrimaryKeys": {
+										"value": "@coalesce(item().PrimaryKeys, '')",
+										"type": "Expression"
+									},
+									"MandatoryColumns": {
+										"value": "@coalesce(item().MandatoryColumns, '')",
+										"type": "Expression"
+									},
+									"SendAlert": {
+										"value": "@item().SendAlert",
+										"type": "Expression"
+									}
+								}
 							}
 						}
 					]
@@ -236,7 +223,7 @@
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "If_Tables_Exist",
+						"activity": "ForEach_Table",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -274,7 +261,7 @@
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "If_Tables_Exist",
+						"activity": "ForEach_Table",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -321,4 +308,3 @@
 		"annotations": []
 	}
 }
-
