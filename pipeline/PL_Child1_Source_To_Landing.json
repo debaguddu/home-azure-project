@@ -159,6 +159,26 @@
 									}
 								}
 							]
+						},
+						{
+							"name": "SetVariable_RowsCopied_Incremental",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy_Source_To_Landing_Incremental",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "RowsCopied",
+								"value": {
+									"value": "@string(activity('Copy_Source_To_Landing_Incremental').output.rowsCopied)",
+									"type": "Expression"
+								}
+							}
 						}
 					],
 					"ifFalseActivities": [
@@ -232,6 +252,26 @@
 									}
 								}
 							]
+						},
+						{
+							"name": "SetVariable_RowsCopied_Full",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy_Source_To_Landing_Full",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "RowsCopied",
+								"value": {
+									"value": "@string(activity('Copy_Source_To_Landing_Full').output.rowsCopied)",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
@@ -258,7 +298,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;')",
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = ', coalesce(variables('RowsCopied'), '0'), ', @ErrorMessage = NULL; SELECT ''Success'' AS Status;')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -344,7 +384,12 @@
 				"defaultValue": "Y"
 			}
 		},
+		"variables": {
+			"RowsCopied": {
+				"type": "String",
+				"defaultValue": "0"
+			}
+		},
 		"annotations": []
 	}
 }
-

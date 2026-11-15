@@ -7,9 +7,16 @@
 			"domain": "https://adb-7405612959366844.4.azuredatabricks.net",
 			"authentication": "MSI",
 			"workspaceResourceId": "/subscriptions/841c4ab4-2ea9-4426-813d-9791abc4cff3/resourceGroups/rg-azureproject-dev-01/providers/Microsoft.Databricks/workspaces/dbw-azureproject-dev-01",
-			"newClusterNodeType": "Standard_DS3_v2",
-			"newClusterNumOfWorker": "1",
+			"newClusterNodeType": "Standard_D4s_v5",
+			"newClusterNumOfWorker": "0",
 			"newClusterVersion": "14.3.x-scala2.12",
+			"newClusterSparkConf": {
+				"spark.master": "local[*]",
+				"spark.databricks.cluster.profile": "singleNode"
+			},
+			"newClusterCustomTags": {
+				"ResourceClass": "SingleNode"
+			},
 			"clusterOption": "Fixed",
 			"newClusterInitScripts": []
 		}
