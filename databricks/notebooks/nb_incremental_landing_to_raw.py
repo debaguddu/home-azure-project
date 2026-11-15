@@ -139,3 +139,4 @@ output = {
 }
 
 dbutils.notebook.exit(json.dumps(output))
+

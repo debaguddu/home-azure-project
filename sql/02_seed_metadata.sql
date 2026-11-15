@@ -138,3 +138,4 @@ SELECT
 FROM dbo.IngestionMetadata m
 LEFT JOIN dbo.WatermarkTable w ON m.TableID = w.TableID;
 GO
+

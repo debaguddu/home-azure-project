@@ -117,3 +117,4 @@ Once pushed, switch to **Azure Data Factory Studio**:
    - Copies full source table to Landing Zone.
    - Child 2 copies Landing Zone CSV directly into Bronze container as `tablename.csv` (full replacement).
    - Logs execution in `PipelineExecutionLog`.
+
