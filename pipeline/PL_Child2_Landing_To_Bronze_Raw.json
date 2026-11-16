@@ -1,7 +1,7 @@
 {
 	"name": "PL_Child2_Landing_To_Bronze_Raw",
 	"properties": {
-		"description": "Child Pipeline 2: Processes landed data to Bronze (Full Load replacement) or executes Databricks Notebook (Incremental) to perform DQ checks and write Delta in Raw layer, returning updated watermark value.",
+		"description": "Child Pipeline 2: Processes landed data to Bronze (Full Load replacement) or executes Databricks Serverless Job (Incremental) to perform DQ checks and write Delta in Raw layer, returning updated watermark value.",
 		"activities": [
 			{
 				"name": "Lookup_Log_Child2_Start",
@@ -52,8 +52,8 @@
 					},
 					"ifTrueActivities": [
 						{
-							"name": "Databricks_Notebook_Incremental",
-							"type": "DatabricksNotebook",
+							"name": "Databricks_Job_Incremental",
+							"type": "DatabricksJob",
 							"dependsOn": [],
 							"policy": {
 								"timeout": "0.01:00:00",
@@ -64,8 +64,11 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"notebookPath": "/Shared/home-azure-project/databricks/notebooks/nb_incremental_landing_to_raw",
-								"baseParameters": {
+								"jobId": {
+									"value": "@pipeline().parameters.DatabricksJobId",
+									"type": "Expression"
+								},
+								"jobParameters": {
 									"source_table_name": {
 										"value": "@pipeline().parameters.SourceTableName",
 										"type": "Expression"
@@ -109,11 +112,79 @@
 							}
 						},
 						{
+							"name": "Web_Get_Run_Details",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Databricks_Job_Incremental",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.00:05:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": {
+									"value": "@concat(pipeline().parameters.DatabricksWorkspaceUrl, '/api/2.1/jobs/runs/get?run_id=', string(activity('Databricks_Job_Incremental').output.runId))",
+									"type": "Expression"
+								},
+								"headers": {
+									"Content-Type": "application/json"
+								},
+								"authentication": {
+									"type": "MSI",
+									"resource": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
+								}
+							}
+						},
+						{
+							"name": "Web_Get_Run_Output",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Web_Get_Run_Details",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.00:05:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": {
+									"value": "@concat(pipeline().parameters.DatabricksWorkspaceUrl, '/api/2.1/jobs/runs/get-output?run_id=', string(activity('Web_Get_Run_Details').output.tasks[0].run_id))",
+									"type": "Expression"
+								},
+								"headers": {
+									"Content-Type": "application/json"
+								},
+								"authentication": {
+									"type": "MSI",
+									"resource": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
+								}
+							}
+						},
+						{
 							"name": "Lookup_Update_Watermark",
 							"type": "Lookup",
 							"dependsOn": [
 								{
-									"activity": "Databricks_Notebook_Incremental",
+									"activity": "Web_Get_Run_Output",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -130,7 +201,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "@concat('EXEC [dbo].[sp_UpdateWatermark] @TableID = ', string(pipeline().parameters.TableID), ', @NewWatermarkValue = ''', string(activity('Databricks_Notebook_Incremental').output.runOutput.max_watermark_value), '''; SELECT ''WatermarkUpdated'' AS Status;')",
+										"value": "@concat('EXEC [dbo].[sp_UpdateWatermark] @TableID = ', string(pipeline().parameters.TableID), ', @NewWatermarkValue = ''', string(coalesce(json(activity('Web_Get_Run_Output').output.notebook_output.result).max_watermark_value, '')), '''; SELECT ''WatermarkUpdated'' AS Status;')",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -151,7 +222,7 @@
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "Databricks_Notebook_Incremental",
+									"activity": "Web_Get_Run_Output",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -161,7 +232,7 @@
 							"typeProperties": {
 								"variableName": "RowsCopied",
 								"value": {
-									"value": "@string(activity('Databricks_Notebook_Incremental').output.runOutput.rows_processed)",
+									"value": "@string(coalesce(json(activity('Web_Get_Run_Output').output.notebook_output.result).rows_processed, '0'))",
 									"type": "Expression"
 								}
 							}
@@ -388,6 +459,14 @@
 			"SendAlert": {
 				"type": "String",
 				"defaultValue": "Y"
+			},
+			"DatabricksJobId": {
+				"type": "String",
+				"defaultValue": "202308513646851"
+			},
+			"DatabricksWorkspaceUrl": {
+				"type": "String",
+				"defaultValue": "https://adb-7405612959366844.4.azuredatabricks.net"
 			}
 		},
 		"variables": {

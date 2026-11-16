@@ -211,6 +211,10 @@
 									"SendAlert": {
 										"value": "@item().SendAlert",
 										"type": "Expression"
+									},
+									"DatabricksJobId": {
+										"value": "@pipeline().parameters.DatabricksJobId",
+										"type": "Expression"
 									}
 								}
 							}
@@ -303,6 +307,10 @@
 			"LoadType": {
 				"type": "String",
 				"defaultValue": "Incremental"
+			},
+			"DatabricksJobId": {
+				"type": "String",
+				"defaultValue": "202308513646851"
 			}
 		},
 		"annotations": []
