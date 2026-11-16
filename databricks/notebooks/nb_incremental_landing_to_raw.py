@@ -5,8 +5,8 @@
 # MAGIC **Framework:** Metadata-Driven Pipeline Framework  
 # MAGIC **Path Structure:** `home/datalake/claims/<tablename>/...`  
 # MAGIC **Capabilities:**  
-# MAGIC 1. Automatically verifies/creates the Unity Catalog **External Volume** if not already created.
-# MAGIC 2. Reads incoming CSV data from ADLS Landing Zone using **Unity Catalog Volume** (`/Volumes/.../home/datalake/claims/<tablename>/YYYY/MM/DD/*.csv`).
+# MAGIC 1. Automatically verifies/creates the Unity Catalog **External Volume** on the fly for each table path (`.../home/datalake/claims/<tablename>`).
+# MAGIC 2. Reads incoming CSV data from ADLS Landing Zone using **Unity Catalog Volume** (`/Volumes/.../<tablename_volume>/YYYY/MM/DD/*.csv`).
 # MAGIC 3. Performs Data Quality (DQ) checks: NULL checks on mandatory columns and Duplicate checks on primary keys.
 # MAGIC 4. Automatically executes **`CREATE SCHEMA IF NOT EXISTS`** in Unity Catalog.
 # MAGIC 5. Automatically executes **`CREATE TABLE IF NOT EXISTS`** as an **External Delta Table** on ADLS Gen2 (`.../home/datalake/claims/<tablename>/delta`) with schema expansion (`mergeSchema = true`).
@@ -19,7 +19,7 @@ dbutils.widgets.text("folder_date", "", "Folder Date (YYYY/MM/DD)")
 dbutils.widgets.text("folder_prefix", "home/datalake/claims", "Folder Prefix")
 dbutils.widgets.text("volume_catalog", "landing_catalog", "Volume Catalog")
 dbutils.widgets.text("volume_schema", "source_sql", "Volume Schema")
-dbutils.widgets.text("volume_name", "landing_volume", "Volume Name")
+dbutils.widgets.text("volume_name", "", "Volume Name (Optional)")
 dbutils.widgets.text("target_catalog", "bronze_catalog", "Target Catalog")
 dbutils.widgets.text("target_schema", "raw_data", "Target Schema")
 dbutils.widgets.text("landing_container", "landing", "Landing Container (Fallback)")
@@ -34,7 +34,7 @@ folder_date          = dbutils.widgets.get("folder_date").strip()
 folder_prefix        = dbutils.widgets.get("folder_prefix").strip().strip("/")
 volume_catalog       = dbutils.widgets.get("volume_catalog").strip()
 volume_schema        = dbutils.widgets.get("volume_schema").strip()
-volume_name          = dbutils.widgets.get("volume_name").strip()
+volume_name_param    = dbutils.widgets.get("volume_name").strip()
 target_catalog       = dbutils.widgets.get("target_catalog").strip()
 target_schema        = dbutils.widgets.get("target_schema").strip()
 landing_container    = dbutils.widgets.get("landing_container").strip()
@@ -44,32 +44,53 @@ watermark_column     = dbutils.widgets.get("watermark_column").strip()
 primary_keys_str     = dbutils.widgets.get("primary_keys").strip()
 mandatory_columns_str= dbutils.widgets.get("mandatory_columns").strip()
 
+# Volume naming: If volume_name is empty, generic 'landing_volume', or starts with vol_, ensure table-specific volume name
+if not volume_name_param or volume_name_param == "landing_volume":
+    volume_name = f"vol_{source_table_name.lower()}"
+else:
+    volume_name = volume_name_param
+
 print(f"Processing Source Table: {source_table_name}")
 print(f"Folder Prefix: {folder_prefix}")
 print(f"Folder Date Partition: {folder_date}")
 print(f"Target Unity Catalog Table: `{target_catalog}`.`{target_schema}`.`{source_table_name}`")
+print(f"Unity Catalog Volume: `{volume_catalog}`.`{volume_schema}`.`{volume_name}`")
 print(f"Watermark Column: {watermark_column}")
 print(f"Primary Keys: {primary_keys_str}")
 print(f"Mandatory Columns: {mandatory_columns_str}")
 
 # COMMAND ----------
-# 2. Automatically Verify/Create Volume if Not Exists
-volume_storage_url = f"abfss://{landing_container}@{storage_account_name}.dfs.core.windows.net/"
+# 2. Automatically Verify/Create Volume On The Fly if Not Exists
+# External volume is created pointing up to table path: /home/datalake/claims/<source_table_name>
+volume_storage_url = f"abfss://{landing_container}@{storage_account_name}.dfs.core.windows.net/{folder_prefix}/{source_table_name}".rstrip("/")
+
+print(f"Ensuring Schema `{volume_catalog}`.`{volume_schema}` exists...")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{volume_catalog}`.`{volume_schema}`")
+
+print(f"Ensuring External Volume `{volume_catalog}`.`{volume_schema}`.`{volume_name}` exists at: {volume_storage_url}...")
+create_volume_sql = f"""
+CREATE EXTERNAL VOLUME IF NOT EXISTS `{volume_catalog}`.`{volume_schema}`.`{volume_name}`
+LOCATION '{volume_storage_url}'
+COMMENT 'Auto-created Landing Volume for table {source_table_name}'
+"""
+
 try:
-    spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{volume_catalog}`.`{volume_schema}`")
-    spark.sql(f"""
-        CREATE EXTERNAL VOLUME IF NOT EXISTS `{volume_catalog}`.`{volume_schema}`.`{volume_name}`
-        LOCATION '{volume_storage_url}'
-        COMMENT 'Auto-created Landing Volume for ADLS Gen2'
-    """)
+    spark.sql(create_volume_sql)
     print(f"External Volume `{volume_catalog}`.`{volume_schema}`.`{volume_name}` verified/created successfully.")
-except Exception as e_vol:
-    print(f"Note on volume check/creation: {str(e_vol)}")
+except Exception as e_vol_create:
+    print(f"Warning during Volume creation: {str(e_vol_create)}")
 
 # COMMAND ----------
 # 3. Build Volume Source Path and External Delta Storage Path
-volume_source_path = f"/Volumes/{volume_catalog}/{volume_schema}/{volume_name}/{folder_prefix}/{source_table_name}/{folder_date}/*.csv"
-fallback_abfss_path = f"abfss://{landing_container}@{storage_account_name}.dfs.core.windows.net/{folder_prefix}/{source_table_name}/{folder_date}/*.csv"
+# Since Volume LOCATION points to /home/datalake/claims/<source_table_name>,
+# files inside the volume are partitioned by date: /{folder_date}/*.csv
+if folder_date:
+    volume_source_path = f"/Volumes/{volume_catalog}/{volume_schema}/{volume_name}/{folder_date}/*.csv"
+    fallback_abfss_path = f"abfss://{landing_container}@{storage_account_name}.dfs.core.windows.net/{folder_prefix}/{source_table_name}/{folder_date}/*.csv"
+else:
+    volume_source_path = f"/Volumes/{volume_catalog}/{volume_schema}/{volume_name}/**/*.csv"
+    fallback_abfss_path = f"abfss://{landing_container}@{storage_account_name}.dfs.core.windows.net/{folder_prefix}/{source_table_name}/**/*.csv"
+
 external_delta_location = f"abfss://{raw_container}@{storage_account_name}.dfs.core.windows.net/{folder_prefix}/{source_table_name}/delta"
 full_table_name = f"`{target_catalog}`.`{target_schema}`.`{source_table_name}`"
 
@@ -84,27 +105,33 @@ from pyspark.sql.functions import col, current_timestamp, input_file_name, max a
 
 df_raw = None
 read_source = None
+row_count = 0
 
 # Attempt reading via Unity Catalog Volume first
 try:
     print(f"Attempting to read via Volume path: {volume_source_path}")
-    df_raw = spark.read.format("csv") \
+    df_candidate = spark.read.format("csv") \
         .option("header", "true") \
         .option("inferSchema", "true") \
         .load(volume_source_path)
+    # Trigger plan evaluation inside try-block to catch missing volume or path errors in Spark Connect
+    row_count = df_candidate.count()
+    df_raw = df_candidate
     read_source = "Volume"
-    print("Successfully read data using Unity Catalog Volume.")
+    print(f"Successfully read data using Unity Catalog Volume. Rows loaded: {row_count}")
 except Exception as e_vol:
     print(f"Volume read attempt failed: {str(e_vol)}. Attempting fallback to direct ABFSS URL...")
     try:
-        df_raw = spark.read.format("csv") \
+        df_candidate = spark.read.format("csv") \
             .option("header", "true") \
             .option("inferSchema", "true") \
             .load(fallback_abfss_path)
+        row_count = df_candidate.count()
+        df_raw = df_candidate
         read_source = "Direct ABFSS"
-        print("Successfully read data using direct ABFSS URL.")
+        print(f"Successfully read data using direct ABFSS URL. Rows loaded: {row_count}")
     except Exception as e_abfss:
-        print(f"Error loading path: {str(e_abfss)}")
+        print(f"Error loading path via both Volume and ABFSS: {str(e_abfss)}")
         output = {
             "status": "NoData",
             "table_name": source_table_name,
@@ -116,7 +143,19 @@ except Exception as e_vol:
         }
         dbutils.notebook.exit(json.dumps(output))
 
-row_count = df_raw.count()
+if row_count == 0:
+    print(f"No incoming records found for table {source_table_name} in partition {folder_date}.")
+    output = {
+        "status": "Success",
+        "table_name": source_table_name,
+        "rows_processed": 0,
+        "max_watermark_value": None,
+        "dq_null_violations": 0,
+        "dq_duplicate_violations": 0,
+        "message": "Zero records found in landing batch."
+    }
+    dbutils.notebook.exit(json.dumps(output))
+
 print(f"Total Rows Loaded ({read_source}): {row_count}")
 
 # COMMAND ----------
@@ -143,10 +182,12 @@ if pk_cols:
     distinct_records = df_raw.select(pk_cols).distinct().count()
     duplicate_violations = total_records - distinct_records
     if duplicate_violations > 0:
-        print(f"[DQ WARNING] Duplicate check on primary keys {pk_cols} revealed {duplicate_violations} duplicate record(s).")
+        print(f"[DQ WARNING] Primary key check on {pk_cols} revealed {duplicate_violations} duplicate record(s).")
+
+print(f"DQ Summary - NULL Violations: {null_violations}, Duplicate Violations: {duplicate_violations}")
 
 # COMMAND ----------
-# 6. Extract Maximum Watermark Value Before Write
+# 6. Extract New Maximum Watermark Value
 max_watermark_val = None
 
 if watermark_column and watermark_column in df_raw.columns:

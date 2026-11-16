@@ -100,7 +100,10 @@
 									},
 									"volume_catalog": "landing_catalog",
 									"volume_schema": "source_sql",
-									"volume_name": "landing_volume",
+									"volume_name": {
+										"value": "@concat('vol_', toLower(pipeline().parameters.SourceTableName))",
+										"type": "Expression"
+									},
 									"target_catalog": "bronze_catalog",
 									"target_schema": "raw_data",
 									"folder_prefix": "home/datalake/claims"

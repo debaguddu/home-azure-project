@@ -81,10 +81,27 @@ COMMENT 'Schema for conformed business domain tables';
 CREATE SCHEMA IF NOT EXISTS `gold_catalog`.`analytics`
 COMMENT 'Schema for reporting and BI analytics';
 
--- 5. Create External Volume for Landing CSV Files
-CREATE EXTERNAL VOLUME IF NOT EXISTS `landing_catalog`.`source_sql`.`landing_volume`
-LOCATION 'abfss://landing@azureprojectdevadls01.dfs.core.windows.net/'
-COMMENT 'External volume to read and access landing zone files via /Volumes/...';
+-- 5. Create External Volumes for Landing CSV Files (Table-specific paths)
+-- Volumes are registered pointing directly to each table's folder in ADLS Gen2:
+CREATE EXTERNAL VOLUME IF NOT EXISTS `landing_catalog`.`source_sql`.`vol_policies`
+LOCATION 'abfss://landing@azureprojectdevadls01.dfs.core.windows.net/home/datalake/claims/Policies'
+COMMENT 'External landing volume for Policies table';
+
+CREATE EXTERNAL VOLUME IF NOT EXISTS `landing_catalog`.`source_sql`.`vol_customers`
+LOCATION 'abfss://landing@azureprojectdevadls01.dfs.core.windows.net/home/datalake/claims/Customers'
+COMMENT 'External landing volume for Customers table';
+
+CREATE EXTERNAL VOLUME IF NOT EXISTS `landing_catalog`.`source_sql`.`vol_coveragetypes`
+LOCATION 'abfss://landing@azureprojectdevadls01.dfs.core.windows.net/home/datalake/claims/CoverageTypes'
+COMMENT 'External landing volume for CoverageTypes table';
+
+CREATE EXTERNAL VOLUME IF NOT EXISTS `landing_catalog`.`source_sql`.`vol_claims`
+LOCATION 'abfss://landing@azureprojectdevadls01.dfs.core.windows.net/home/datalake/claims/Claims'
+COMMENT 'External landing volume for Claims table';
+
+CREATE EXTERNAL VOLUME IF NOT EXISTS `landing_catalog`.`source_sql`.`vol_agents`
+LOCATION 'abfss://landing@azureprojectdevadls01.dfs.core.windows.net/home/datalake/claims/Agents'
+COMMENT 'External landing volume for Agents table';
 
 -- 6. Verification Queries
 SHOW STORAGE CREDENTIALS;
