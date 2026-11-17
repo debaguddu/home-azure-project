@@ -1,0 +1,38 @@
+{
+  "name": "job_incremental_landing_to_raw",
+  "description": "Serverless Databricks Workflow to ingest Landing Zone CSV data to Bronze Raw External Delta tables with DQ checks.",
+  "tasks": [
+    {
+      "task_key": "incremental_landing_to_raw_task",
+      "description": "Executes nb_incremental_landing_to_raw notebook on Databricks Serverless compute.",
+      "notebook_task": {
+        "notebook_path": "/Shared/home-azure-project/databricks/notebooks/nb_incremental_landing_to_raw",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "source_table_name": "Policies",
+          "folder_date": "2026/11/16",
+          "folder_prefix": "home/datalake/claims",
+          "volume_catalog": "landing_catalog",
+          "volume_schema": "source_sql",
+          "volume_name": "vol_policies",
+          "target_catalog": "bronze_catalog",
+          "target_schema": "raw_data",
+          "landing_container": "landing",
+          "raw_container": "raw",
+          "storage_account_name": "azureprojectdevadls01",
+          "watermark_column": "ModifiedDate",
+          "primary_keys": "PolicyID",
+          "mandatory_columns": "PolicyID,PolicyNumber"
+        }
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1,
+      "min_retry_interval_millis": 30000,
+      "retry_on_timeout": false
+    }
+  ],
+  "format": "MULTI_TASK",
+  "queue": {
+    "enabled": true
+  }
+}
