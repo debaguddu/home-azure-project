@@ -168,7 +168,7 @@
 			},
 			"DatabricksJobId": {
 				"type": "String",
-				"defaultValue": "Service_Cleanup_Tables"
+				"defaultValue": "734292707355697"
 			},
 			"DropDatabricksTable": {
 				"type": "String",
