@@ -224,3 +224,4 @@ sequenceDiagram
     ADB->>ADB: Populate Analytical Marts & Reporting Views
     ADF->>SQL: sp_LogPipelineEnd (Success)
 ```
+

@@ -109,3 +109,4 @@ footer: "Microsoft Azure & Databricks Architecture"
   - **Power BI Direct Lake:** Connect directly to Gold Delta tables without scheduled refreshes.
   - **ML Predictive Models:** Claims fraud detection and policy churn prediction using Databricks MLflow.
   - **CI/CD Automation:** Azure DevOps / GitHub Actions pipeline for automated environment promotion.
+

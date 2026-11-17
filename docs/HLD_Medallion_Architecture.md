@@ -149,3 +149,4 @@ flowchart TB
 - **Idempotent Ingestion**: Timestamped file generation paired with ADF-to-Databricks `file_name` widget parameters prevents cross-batch duplicate reading.
 - **Automated Service Cleanup**: Dedicated pipeline (`PL_Service_Cleanup_Tables`) and notebook (`nb_service_cleanup_tables`) enable 1-click environment resets.
 - **Comprehensive Audit Log**: `dbo.PipelineExecutionLog` tracks execution runtimes, rows copied, and error messages at both batch and table levels.
+

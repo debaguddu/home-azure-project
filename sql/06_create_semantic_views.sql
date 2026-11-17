@@ -225,3 +225,4 @@ SELECT
 FROM silver_catalog.insurance_conformed.dim_customer cust
 LEFT JOIN CustomerAggregates ca ON cust.CustomerID = ca.CustomerID;
 GO
+

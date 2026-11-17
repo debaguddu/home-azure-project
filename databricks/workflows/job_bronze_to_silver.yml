@@ -38,3 +38,4 @@ resources:
           spec:
             environment_version: "6"
       performance_target: PERFORMANCE_OPTIMIZED
+
