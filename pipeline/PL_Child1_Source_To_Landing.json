@@ -85,7 +85,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "@concat('SELECT WatermarkValue FROM [dbo].[WatermarkTable] WHERE TableID = ', string(pipeline().parameters.TableID))",
+										"value": "@concat('SELECT ISNULL(WatermarkValue, ''1900-01-01 00:00:00'') AS WatermarkValue FROM [dbo].[WatermarkTable] WHERE TableID = ', string(pipeline().parameters.TableID))",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",

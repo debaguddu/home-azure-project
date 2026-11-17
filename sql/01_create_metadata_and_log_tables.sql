@@ -178,9 +178,41 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT WatermarkValue
+    SELECT ISNULL(WatermarkValue, '1900-01-01 00:00:00') AS WatermarkValue
     FROM dbo.WatermarkTable
     WHERE TableID = @TableID;
+END;
+GO
+
+-- Stored Procedure: sp_ResetWatermark
+IF OBJECT_ID('dbo.sp_ResetWatermark', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_ResetWatermark;
+GO
+
+CREATE PROCEDURE dbo.sp_ResetWatermark
+    @TableID            INT = NULL,                                    -- NULL to reset all tables
+    @SourceTableName    VARCHAR(100) = NULL,                           -- Optional: filter by table name
+    @DefaultWatermark   VARCHAR(100) = '1900-01-01 00:00:00'          -- Default starting watermark
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.WatermarkTable
+    SET WatermarkValue = @DefaultWatermark,
+        LastUpdatedDate = SYSUTCDATETIME()
+    WHERE (@TableID IS NULL OR TableID = @TableID)
+      AND (@SourceTableName IS NULL OR SourceTableName = @SourceTableName);
+
+    SELECT 
+        WatermarkID, 
+        TableID, 
+        SourceTableName, 
+        WatermarkColumn, 
+        WatermarkValue, 
+        LastUpdatedDate
+    FROM dbo.WatermarkTable
+    WHERE (@TableID IS NULL OR TableID = @TableID)
+      AND (@SourceTableName IS NULL OR SourceTableName = @SourceTableName);
 END;
 GO
 
