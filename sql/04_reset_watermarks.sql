@@ -41,3 +41,4 @@ FROM dbo.WatermarkTable w
 LEFT JOIN dbo.IngestionMetadata m ON w.TableID = m.TableID
 ORDER BY w.TableID;
 GO
+
