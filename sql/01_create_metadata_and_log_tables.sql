@@ -216,3 +216,32 @@ BEGIN
 END;
 GO
 
+-- Stored Procedure: sp_ResetInProgressLogs
+IF OBJECT_ID('dbo.sp_ResetInProgressLogs', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_ResetInProgressLogs;
+GO
+
+CREATE PROCEDURE dbo.sp_ResetInProgressLogs
+    @BatchID            VARCHAR(100)  = NULL,
+    @PipelineName       VARCHAR(100)  = NULL,
+    @NewStatus          VARCHAR(50)   = 'Failed',
+    @ErrorMessage       NVARCHAR(MAX) = 'Pipeline run terminated or reset manually'
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @CurrentTime DATETIME2 = SYSUTCDATETIME();
+
+    UPDATE dbo.PipelineExecutionLog
+    SET Status = @NewStatus,
+        EndTime = @CurrentTime,
+        DurationInSeconds = DATEDIFF(SECOND, StartTime, @CurrentTime),
+        ErrorMessage = @ErrorMessage
+    WHERE Status = 'InProgress'
+      AND (@BatchID IS NULL OR BatchID = @BatchID)
+      AND (@PipelineName IS NULL OR PipelineName = @PipelineName);
+
+    SELECT @@ROWCOUNT AS RowsReset;
+END;
+GO
+

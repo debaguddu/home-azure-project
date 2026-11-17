@@ -1,0 +1,197 @@
+{
+	"name": "PL_Service_Cleanup_Tables",
+	"properties": {
+		"description": "Service Pipeline: Environment cleanup utility. Deletes external ADLS Gen2 storage paths (Landing, Bronze, Raw) and drops Unity Catalog Delta tables in Azure Databricks. Optionally resets watermarks and in-progress execution logs.",
+		"activities": [
+			{
+				"name": "Databricks_Cleanup_Tables",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_service_cleanup_tables",
+					"baseParameters": {
+						"source_table_name": {
+							"value": "@pipeline().parameters.TableName",
+							"type": "Expression"
+						},
+						"target_catalog": "bronze_catalog",
+						"target_schema": "raw_data",
+						"volume_catalog": "landing_catalog",
+						"volume_schema": "source_sql",
+						"landing_container": "landing",
+						"bronze_container": "bronze",
+						"raw_container": "raw",
+						"storage_account_name": "azureprojectdevadls01",
+						"folder_prefix": "home/datalake/claims",
+						"drop_uc_table": {
+							"value": "@pipeline().parameters.DropDatabricksTable",
+							"type": "Expression"
+						},
+						"delete_raw_path": {
+							"value": "@pipeline().parameters.DeleteRawPath",
+							"type": "Expression"
+						},
+						"delete_landing_path": {
+							"value": "@pipeline().parameters.DeleteLandingPath",
+							"type": "Expression"
+						},
+						"delete_bronze_path": {
+							"value": "@pipeline().parameters.DeleteBronzePath",
+							"type": "Expression"
+						},
+						"drop_uc_volume": {
+							"value": "@pipeline().parameters.DropVolume",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ADB_HOME_01",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "If_Reset_Watermarks",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Cleanup_Tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(toUpper(pipeline().parameters.ResetWatermark), 'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Lookup_Reset_Watermarks",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:05:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@concat('EXEC dbo.sp_ResetWatermark @SourceTableName = ', if(equals(toUpper(pipeline().parameters.TableName), 'ALL'), 'NULL', concat('''', pipeline().parameters.TableName, '''')), '; SELECT ''WatermarkReset'' AS Status;') ",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_ASQL_Generic",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": "dbo",
+										"TableName": "WatermarkTable"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If_Reset_InProgress_Logs",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Cleanup_Tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(toUpper(pipeline().parameters.ResetInProgressLogs), 'Y')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Lookup_Reset_InProgress_Logs",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:05:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": "EXEC dbo.sp_ResetInProgressLogs @NewStatus = 'Cancelled', @ErrorMessage = 'Cleaned up by PL_Service_Cleanup_Tables'; SELECT 'LogsReset' AS Status;",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_ASQL_Generic",
+									"type": "DatasetReference",
+									"parameters": {
+										"SchemaName": "dbo",
+										"TableName": "PipelineExecutionLog"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"TableName": {
+				"type": "String",
+				"defaultValue": "ALL"
+			},
+			"DropDatabricksTable": {
+				"type": "String",
+				"defaultValue": "true"
+			},
+			"DeleteRawPath": {
+				"type": "String",
+				"defaultValue": "true"
+			},
+			"DeleteLandingPath": {
+				"type": "String",
+				"defaultValue": "true"
+			},
+			"DeleteBronzePath": {
+				"type": "String",
+				"defaultValue": "true"
+			},
+			"DropVolume": {
+				"type": "String",
+				"defaultValue": "false"
+			},
+			"ResetWatermark": {
+				"type": "String",
+				"defaultValue": "Y"
+			},
+			"ResetInProgressLogs": {
+				"type": "String",
+				"defaultValue": "Y"
+			}
+		},
+		"annotations": []
+	}
+}
