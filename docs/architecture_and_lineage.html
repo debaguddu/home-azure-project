@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metadata-Driven Medallion Data Platform Architecture & Lineage</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-bronze: #cd7f32;
+            --accent-silver: #94a3b8;
+            --accent-gold: #f59e0b;
+            --accent-semantic: #38bdf8;
+            --accent-blue: #3b82f6;
+            --border-color: #334155;
+            --success: #10b981;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 24px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #38bdf8;
+        }
+        .badge {
+            background-color: #0284c7;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+        }
+        .card-bronze { border-top: 4px solid var(--accent-bronze); }
+        .card-silver { border-top: 4px solid var(--accent-silver); }
+        .card-gold { border-top: 4px solid var(--accent-gold); }
+        .card-semantic { border-top: 4px solid var(--accent-semantic); }
+        .card h3 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+        }
+        .card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 0 0 10px 0;
+        }
+        .tag {
+            display: inline-block;
+            background: #334155;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            color: #cbd5e1;
+        }
+        .diagram-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+        .section-title {
+            font-size: 20px;
+            margin: 30px 0 15px 0;
+            color: #e2e8f0;
+            border-left: 4px solid var(--accent-blue);
+            padding-left: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            background-color: #1e293b;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+        }
+        tr:hover {
+            background-color: #273549;
+        }
+        code {
+            background: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #38bdf8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Enterprise Medallion Data Platform Architecture</h1>
+                <div style="color: var(--text-secondary); margin-top: 4px;">Metadata-Driven Ingestion, Medallion Processing & Semantic BI Layer</div>
+            </div>
+            <div>
+                <span class="badge">Azure Databricks & ADF</span>
+            </div>
+        </header>
+
+        <!-- Medallion Layer Summary Cards -->
+        <div class="grid">
+            <div class="card card-bronze">
+                <h3>🥉 Bronze Layer (Raw)</h3>
+                <p><strong>Catalog:</strong> <code>bronze_catalog.raw_data</code></p>
+                <p>As-is ingest from on-premises SQL Server. Technical audit columns (<code>InsertedTimestamp</code>, <code>UpdatedTimestamp</code>, <code>RecordAction</code>) and duplicate primary key validation per landed CSV file.</p>
+                <div>
+                    <span class="tag">Policies</span>
+                    <span class="tag">Customers</span>
+                    <span class="tag">Claims</span>
+                    <span class="tag">CoverageTypes</span>
+                    <span class="tag">Agents</span>
+                </div>
+            </div>
+
+            <div class="card card-silver">
+                <h3>🥈 Silver Layer (Conformed)</h3>
+                <p><strong>Catalog:</strong> <code>silver_catalog.insurance_conformed</code></p>
+                <p>Standardized, typed, and cleansed dimensional model. Deduplicated customer records, telephone/email formatting, and SCD Type 1 upserts.</p>
+                <div>
+                    <span class="tag">dim_customer</span>
+                    <span class="tag">dim_agent</span>
+                    <span class="tag">dim_coverage</span>
+                    <span class="tag">fct_policy</span>
+                    <span class="tag">fct_claim</span>
+                </div>
+            </div>
+
+            <div class="card card-gold">
+                <h3>🥇 Gold Layer (Analytics)</h3>
+                <p><strong>Catalog:</strong> <code>gold_catalog.insurance_analytics</code></p>
+                <p>Star schema marts and monthly pre-aggregated analytics. Pre-computes loss ratios, profit margins, turnaround days, and customer risk tiers.</p>
+                <div>
+                    <span class="tag">fact_policy_performance</span>
+                    <span class="tag">fact_claims_settlement</span>
+                    <span class="tag">agg_agent_performance</span>
+                    <span class="tag">agg_claims_loss_ratio</span>
+                    <span class="tag">agg_customer_risk</span>
+                </div>
+            </div>
+
+            <div class="card card-semantic">
+                <h3>💎 Semantic Layer (Views)</h3>
+                <p><strong>Catalog:</strong> <code>gold_catalog.semantic_reporting</code></p>
+                <p>Business-oriented Unity Catalog views optimized for Power BI Direct Lake / SQL Warehouses, C-Suite KPIs, and claims adjudicators.</p>
+                <div>
+                    <span class="tag">vw_executive_kpi_dashboard</span>
+                    <span class="tag">vw_claims_analyst_workbench</span>
+                    <span class="tag">vw_agent_leaderboard</span>
+                    <span class="tag">vw_customer_360</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- End-to-End Lineage Flow Diagram -->
+        <div class="section-title">End-to-End Architecture & Lineage Flow</div>
+        <div class="diagram-container">
+            <pre class="mermaid">
+flowchart LR
+    subgraph S["On-Premises SQL Server"]
+        DemoDB["DemoDB\n(EC2 / SHIR)"]
+    end
+
+    subgraph L["Landing (ADLS Gen2)"]
+        LandingStore["landing/\nhome/datalake/claims/\n{Table}/{Date}/{File}.csv"]
+    end
+
+    subgraph B["Bronze Tier (Unity Catalog)"]
+        direction TB
+        B_Pol["bronze_catalog.raw_data.Policies"]
+        B_Cust["bronze_catalog.raw_data.Customers"]
+        B_Clm["bronze_catalog.raw_data.Claims"]
+        B_Cov["bronze_catalog.raw_data.CoverageTypes"]
+        B_Agt["bronze_catalog.raw_data.Agents"]
+    end
+
+    subgraph Sil["Silver Tier (Conformed Dimensions & Facts)"]
+        direction TB
+        S_Cust["dim_customer\n(SCD 1)"]
+        S_Agt["dim_agent\n(SCD 1)"]
+        S_Cov["dim_coverage\n(Dimension)"]
+        S_Pol["fct_policy\n(Lifecycle Fact)"]
+        S_Clm["fct_claim\n(Transactions Fact)"]
+    end
+
+    subgraph G["Gold Tier (Analytical Marts)"]
+        direction TB
+        G_PolPerf["fact_policy_performance\n(Underwriting Mart)"]
+        G_ClmSet["fact_claims_settlement\n(Adjudication Mart)"]
+        G_AgtMth["agg_agent_performance_monthly"]
+        G_CovMth["agg_claims_loss_ratio_by_coverage"]
+        G_CustRisk["agg_customer_risk_profile"]
+    end
+
+    subgraph V["Semantic Reporting Views"]
+        direction TB
+        V_Exec["vw_executive_kpi_dashboard"]
+        V_Clm["vw_claims_analyst_workbench"]
+        V_Agt["vw_agent_leaderboard"]
+        V_C360["vw_customer_360"]
+    end
+
+    %% Ingestion Links
+    DemoDB -->|"PL_Child1"| LandingStore
+    LandingStore -->|"PL_Child2 (Isolated File)"| B_Pol
+    LandingStore -->|"PL_Child2"| B_Cust
+    LandingStore -->|"PL_Child2"| B_Clm
+    LandingStore -->|"PL_Child2"| B_Cov
+    LandingStore -->|"PL_Child2"| B_Agt
+
+    %% Silver Links
+    B_Cust -->|"Cleanse & Deduplicate"| S_Cust
+    B_Agt -->|"Format & Clean"| S_Agt
+    B_Cov -->|"Normalize"| S_Cov
+    B_Pol -->|"Cast & Derive Dates"| S_Pol
+    B_Clm -->|"Turnaround Days"| S_Clm
+
+    %% Gold Links
+    S_Pol & S_Cust & S_Agt & S_Cov --> G_PolPerf
+    S_Clm & S_Pol & S_Cust --> G_ClmSet
+    G_PolPerf --> G_AgtMth
+    G_PolPerf --> G_CovMth
+    G_PolPerf --> G_CustRisk
+
+    %% Semantic View Links
+    G_PolPerf & G_ClmSet --> V_Exec
+    G_ClmSet --> V_Clm
+    G_AgtMth & S_Agt --> V_Agt
+    G_CustRisk & S_Cust --> V_C360
+            </pre>
+        </div>
+
+        <!-- Entity Relationship & Business Logic Summary -->
+        <div class="section-title">Core Business Entities & Key Join Logics</div>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Source Entities</th>
+                        <th>Target Model</th>
+                        <th>Primary Key / Grain</th>
+                        <th>Join Conditions</th>
+                        <th>Business Value Achieved</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>fct_policy</code>, <code>dim_customer</code>, <code>dim_agent</code>, <code>dim_coverage</code>, <code>fct_claim</code></td>
+                        <td><code>fact_policy_performance</code></td>
+                        <td><code>PolicyID</code></td>
+                        <td>
+                            <code>p.CustomerID = c.CustomerID</code><br>
+                            <code>p.AgentID = a.AgentID</code><br>
+                            <code>p.CoverageCode = cov.CoverageCode</code><br>
+                            <code>p.PolicyID = clm.PolicyID</code>
+                        </td>
+                        <td>Underwriting profitability: computes <strong>Net Profit Margin</strong> (<code>Premium - Claims</code>) and <strong>Policy Loss Ratio %</strong>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>fct_claim</code>, <code>fct_policy</code>, <code>dim_customer</code></td>
+                        <td><code>fact_claims_settlement</code></td>
+                        <td><code>ClaimID</code></td>
+                        <td>
+                            <code>c.PolicyID = p.PolicyID</code><br>
+                            <code>p.CustomerID = cust.CustomerID</code>
+                        </td>
+                        <td>Claims adjudication: flags claims below deductible, calculates <strong>Payout %</strong>, and classifies claims into <strong>High/Medium/Low Severity Tiers</strong>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>fact_policy_performance</code></td>
+                        <td><code>agg_agent_performance_monthly</code></td>
+                        <td><code>AgentID</code>, <code>MonthYear</code></td>
+                        <td><code>GROUP BY AgentID, MonthYear</code></td>
+                        <td>Agency performance: ranks agents by <strong>Written Premium</strong>, calculates <strong>Agent Loss Ratio</strong>, and identifies top producers.</td>
+                    </tr>
+                    <tr>
+                        <td><code>fact_policy_performance</code></td>
+                        <td><code>agg_claims_loss_ratio_by_coverage</code></td>
+                        <td><code>CoverageCode</code>, <code>MonthYear</code></td>
+                        <td><code>GROUP BY CoverageCode, MonthYear</code></td>
+                        <td>Line of Business analysis: tracks product profitability across Auto, Home, Life, and Health coverages over time.</td>
+                    </tr>
+                    <tr>
+                        <td><code>fact_policy_performance</code></td>
+                        <td><code>agg_customer_risk_profile</code></td>
+                        <td><code>CustomerID</code></td>
+                        <td><code>GROUP BY CustomerID</code></td>
+                        <td>Customer 360 intelligence: categorizes customers into <strong>Prime (Zero Claims)</strong>, <strong>Standard Risk</strong>, or <strong>High Risk (Unprofitable)</strong>.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Orchestration Pipelines Catalog -->
+        <div class="section-title">Azure Data Factory Orchestration Matrix</div>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pipeline Name</th>
+                        <th>Type</th>
+                        <th>Input Parameters</th>
+                        <th>Activities Executed</th>
+                        <th>Target Output</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>PL_Master_Medallion_End_To_End</code></td>
+                        <td>Master Orchestrator</td>
+                        <td><code>TriggerName, LoadType, DatabricksJobId</code></td>
+                        <td>Sequentially executes Ingestion Master &rarr; Silver &rarr; Gold with centralized logging</td>
+                        <td>Full Medallion data refresh across Bronze, Silver, Gold, and Semantic Views</td>
+                    </tr>
+                    <tr>
+                        <td><code>PL_Master_Metadata_Ingestion</code></td>
+                        <td>Ingestion Orchestrator</td>
+                        <td><code>TriggerName, LoadType, DatabricksJobId</code></td>
+                        <td>Lookup active tables from <code>IngestionMetadata</code> &rarr; Parallel <code>ForEach_Table</code></td>
+                        <td>Coordinates Child 1 and Child 2 across all active tables</td>
+                    </tr>
+                    <tr>
+                        <td><code>PL_Child1_Source_To_Landing</code></td>
+                        <td>Source Extraction</td>
+                        <td><code>SourceTableName, WatermarkColumn, LoadType</code></td>
+                        <td>Generates timestamped filename &rarr; Copies SQL Server data &rarr; Returns <code>LandedFileName</code></td>
+                        <td><code>adls://landing/{Table}/{Date}/{File}.csv</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>PL_Child2_Landing_To_Bronze_Raw</code></td>
+                        <td>Raw Delta Processing</td>
+                        <td><code>SourceTableName, FileName, WatermarkColumn</code></td>
+                        <td>Invokes Databricks Job with <code>file_name</code> &rarr; Evaluates per-file DQ &rarr; Delta MERGE &rarr; Updates Watermark</td>
+                        <td><code>bronze_catalog.raw_data.{Table}</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>PL_Child3_Bronze_To_Silver</code></td>
+                        <td>Silver Transformation</td>
+                        <td><code>BronzeCatalog, SilverCatalog</code></td>
+                        <td>Executes <code>nb_transform_bronze_to_silver</code> &rarr; Conforms dimensions & facts</td>
+                        <td><code>silver_catalog.insurance_conformed</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>PL_Child4_Silver_To_Gold</code></td>
+                        <td>Gold & Semantic Deploy</td>
+                        <td><code>SilverCatalog, GoldCatalog</code></td>
+                        <td>Executes <code>nb_transform_silver_to_gold</code> &rarr; Executes <code>nb_create_semantic_views</code></td>
+                        <td><code>gold_catalog.insurance_analytics</code> & <code>gold_catalog.semantic_reporting</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>PL_Service_Cleanup_Tables</code></td>
+                        <td>Environment Maintenance</td>
+                        <td><code>TableName, DropDatabricksTable, DeleteRawPath</code></td>
+                        <td>Executes <code>nb_service_cleanup_tables</code> &rarr; Drops Unity Catalog tables & deletes external storage</td>
+                        <td>Clean environment reset for automated testing</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            Metadata-Driven Enterprise Data Platform | Microsoft Azure & Databricks Unity Catalog
+        </footer>
+    </div>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            flowchart: {
+                curve: 'basis',
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>

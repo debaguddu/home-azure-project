@@ -66,6 +66,26 @@ CREATE TABLE dbo.PipelineExecutionLog (
 );
 GO
 
+-- 4. Create DataTransformMetadata Table (Silver & Gold Orchestration)
+IF OBJECT_ID('dbo.DataTransformMetadata', 'U') IS NOT NULL
+    DROP TABLE dbo.DataTransformMetadata;
+GO
+
+CREATE TABLE dbo.DataTransformMetadata (
+    TransformID             INT IDENTITY(1,1) PRIMARY KEY,
+    Layer                   VARCHAR(20) NOT NULL,              -- 'Silver', 'Gold', 'Semantic'
+    TargetCatalog           VARCHAR(50) NOT NULL,              -- e.g. 'silver_catalog', 'gold_catalog'
+    TargetSchema            VARCHAR(50) NOT NULL,              -- e.g. 'insurance_conformed', 'insurance_analytics'
+    TargetTableName         VARCHAR(100) NOT NULL,
+    SourceTables            VARCHAR(255) NOT NULL,             -- Source dependencies
+    TransformationType      VARCHAR(50) NOT NULL,              -- 'Dimension_SCD1', 'Fact_Incremental', 'Aggregate_Mart', 'Semantic_View'
+    ExecutionOrder          INT NOT NULL DEFAULT 1,
+    IsActive                CHAR(1) NOT NULL DEFAULT 'Y',
+    Description             NVARCHAR(500) NULL,
+    CreatedDate             DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);
+GO
+
 -- ==============================================================================
 -- STORED PROCEDURES
 -- ==============================================================================

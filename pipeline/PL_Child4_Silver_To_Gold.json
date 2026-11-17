@@ -1,0 +1,217 @@
+{
+	"name": "PL_Child4_Silver_To_Gold",
+	"properties": {
+		"description": "Child Pipeline 4: Aggregates conformed Silver models into curated Gold analytical marts (fact_policy_performance, fact_claims_settlement, monthly aggregates) and deploys reporting Semantic Views in gold_catalog.semantic_reporting.",
+		"activities": [
+			{
+				"name": "Lookup_Log_Child4_Start",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Child4_Silver_To_Gold'', @TableID = NULL, @TableName = ''All_Gold_Marts'', @LoadType = ''Gold_Analytics''; SELECT ''', pipeline().RunId, ''' AS RunId;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Databricks_Transform_Silver_To_Gold",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Log_Child4_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_transform_silver_to_gold",
+					"baseParameters": {
+						"silver_catalog": {
+							"value": "@pipeline().parameters.SilverCatalog",
+							"type": "Expression"
+						},
+						"silver_schema": {
+							"value": "@pipeline().parameters.SilverSchema",
+							"type": "Expression"
+						},
+						"gold_catalog": {
+							"value": "@pipeline().parameters.GoldCatalog",
+							"type": "Expression"
+						},
+						"gold_schema": {
+							"value": "@pipeline().parameters.GoldSchema",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ADB_HOME_01",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Databricks_Deploy_Semantic_Views",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Transform_Silver_To_Gold",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:30:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_create_semantic_views",
+					"baseParameters": {}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ADB_HOME_01",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Lookup_Log_Child4_End_Success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Deploy_Semantic_Views",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_Child4_End_Failed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Transform_Silver_To_Gold",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "Databricks_Deploy_Semantic_Views",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Child 4 Silver to Gold Transformation or Semantic Deployment Failed''; SELECT ''Failed'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "String",
+				"defaultValue": "Manual_Run"
+			},
+			"SilverCatalog": {
+				"type": "String",
+				"defaultValue": "silver_catalog"
+			},
+			"SilverSchema": {
+				"type": "String",
+				"defaultValue": "insurance_conformed"
+			},
+			"GoldCatalog": {
+				"type": "String",
+				"defaultValue": "gold_catalog"
+			},
+			"GoldSchema": {
+				"type": "String",
+				"defaultValue": "insurance_analytics"
+			}
+		},
+		"annotations": []
+	}
+}

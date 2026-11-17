@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Presentation: Metadata-Driven Medallion Data Platform</title>
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --slide-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-gold: #fbbf24;
+            --accent-green: #34d399;
+            --border-color: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .slide-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        .slide {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            height: 80vh;
+            background: var(--slide-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 50px 60px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            flex-direction: column;
+            justify-content: space-between;
+            animation: fadeIn 0.3s ease;
+        }
+        .slide.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-header {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .slide-title {
+            font-size: 32px;
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+        .slide-category {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .slide-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 18px;
+            color: #cbd5e1;
+        }
+        .slide-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            height: 100%;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .box h4 {
+            color: var(--accent-blue);
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+        .box p, .box li {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #94a3b8;
+        }
+        ul { margin-left: 20px; margin-top: 10px; }
+        li { margin-bottom: 8px; }
+        .hero {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        .hero h1 {
+            font-size: 52px;
+            color: var(--accent-blue);
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+        .hero h2 {
+            font-size: 24px;
+            color: var(--accent-gold);
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+        .controls {
+            height: 60px;
+            background: #0f172a;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+        }
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .btn:disabled { background: #334155; cursor: not-allowed; }
+        .stat-number {
+            font-size: 38px;
+            font-weight: 800;
+            color: var(--accent-gold);
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slide-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="hero">
+                <h1>Metadata-Driven Medallion Data Platform</h1>
+                <h2>Architecting Enterprise Data Lakehouse on Azure & Databricks</h2>
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <span style="background: #1e3a8a; color: #93c5fd; padding: 6px 14px; border-radius: 20px; font-size: 14px;">Azure Data Factory</span>
+                    <span style="background: #14532d; color: #86efac; padding: 6px 14px; border-radius: 20px; font-size: 14px;">Delta Lake & Unity Catalog</span>
+                    <span style="background: #78350f; color: #fde68a; padding: 6px 14px; border-radius: 20px; font-size: 14px;">Power BI Semantic Layer</span>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>Enterprise Architecture Team</span>
+                <span>Slide 1 of 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 2: Business Drivers -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="slide-title">Business Drivers & Key Objectives</span>
+                <span class="slide-category">Problem Statement & Vision</span>
+            </div>
+            <div class="slide-content">
+                <div class="grid-3">
+                    <div class="box">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Metadata Driven</div>
+                        <p style="margin-top: 12px;">Eliminated hardcoded pipeline logic. Onboarding new tables or modifying watermark columns is achieved via a single metadata record insert in Azure SQL.</p>
+                    </div>
+                    <div class="box">
+                        <div class="stat-number">&lt; 5 min</div>
+                        <div class="stat-label">Data Freshness SLA</div>
+                        <p style="margin-top: 12px;">Automated incremental watermarking enables frequent intraday synchronization from On-Premises SQL Server without duplicating processing.</p>
+                    </div>
+                    <div class="box">
+                        <div class="stat-number">360°</div>
+                        <div class="stat-label">Unified Analytics</div>
+                        <p style="margin-top: 12px;">Pre-aggregated Loss Ratios %, Claim Settlement Turnaround Days, and Agent Sales rankings available for instant reporting.</p>
+                    </div>
+                </div>
+                <div class="box" style="margin-top: 20px;">
+                    <h4>Core Deliverables</h4>
+                    <ul>
+                        <li><strong>Self-Healing Orchestration</strong>: ADF pipeline return values and runtime variable binding eliminate race conditions and timestamp drift.</li>
+                        <li><strong>Multi-Hop Quality Gates</strong>: Bronze raw capture &rarr; Silver conformed SCD1 &rarr; Gold analytical marts &rarr; Semantic views.</li>
+                        <li><strong>Unified Governance</strong>: Azure Databricks Unity Catalog 3-level namespace (<code>catalog.schema.table</code>) across all layers.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>Enterprise Data Engineering</span>
+                <span>Slide 2 of 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 3: Medallion Architecture -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="slide-title">The Multi-Hop Medallion Architecture</span>
+                <span class="slide-category">Technical Blueprint</span>
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div class="box">
+                        <h4 style="color: #cd7f32;">🥉 Bronze (Raw Ingestion)</h4>
+                        <ul>
+                            <li><strong>Schema:</strong> <code>bronze_catalog.raw_data</code></li>
+                            <li><strong>Storage:</strong> <code>adls://raw/claims/{Table}/delta</code></li>
+                            <li>Lossless raw ingest preserving source fidelity.</li>
+                            <li>Enforces Delta MERGE with Schema Evolution.</li>
+                            <li>Automatic audit columns: <code>InsertedTimestamp</code>, <code>UpdatedTimestamp</code>, <code>RecordAction ('I'/'U')</code>.</li>
+                            <li>Per-file primary key uniqueness validation.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4 style="color: #94a3b8;">🥈 Silver (Cleaned & Conformed)</h4>
+                        <ul>
+                            <li><strong>Schema:</strong> <code>silver_catalog.insurance_conformed</code></li>
+                            <li>Standardized telephone, lowercase emails, trimmed strings.</li>
+                            <li>Data typing (Decimal for currency, Date for timestamps).</li>
+                            <li>Conformed Dimensions: <code>dim_customer</code>, <code>dim_agent</code>, <code>dim_coverage</code>.</li>
+                            <li>Conformed Facts: <code>fct_policy</code>, <code>fct_claim</code> with turnaround cycle times.</li>
+                            <li>SCD Type 1 automated upserts.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4 style="color: #fbbf24;">🥇 Gold (Curated Business Marts)</h4>
+                        <ul>
+                            <li><strong>Schema:</strong> <code>gold_catalog.insurance_analytics</code></li>
+                            <li>Curated Star Schema Marts for underwriting and claims.</li>
+                            <li>Pre-aggregates: Loss Ratio %, Net Underwriting Margin, and Claims Severity Tiers.</li>
+                            <li>Monthly rollup marts for agency and coverage performance.</li>
+                            <li>Customer risk scoring: Prime vs High-Risk Claimant.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4 style="color: #38bdf8;">💎 Semantic Views (Direct BI)</h4>
+                        <ul>
+                            <li><strong>Schema:</strong> <code>gold_catalog.semantic_reporting</code></li>
+                            <li>Designed for Power BI Direct Lake & SQL Warehouses.</li>
+                            <li><code>vw_executive_kpi_dashboard</code>: C-Suite KPI summary.</li>
+                            <li><code>vw_claims_analyst_workbench</code>: Adjudicator triage.</li>
+                            <li><code>vw_agent_leaderboard</code>: Producer rankings.</li>
+                            <li><code>vw_customer_360</code>: Single customer view.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>Data Architecture</span>
+                <span>Slide 3 of 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 4: Data Models & Joins -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="slide-title">Data Lineage & Entity Relationships</span>
+                <span class="slide-category">Data Modeling & Relationships</span>
+            </div>
+            <div class="slide-content">
+                <div class="box">
+                    <h4>How Business Entities Join Across the Lakehouse</h4>
+                    <table>
+                        <thead>
+                            <tr style="text-align: left; color: var(--accent-blue);">
+                                <th style="padding: 8px;">Target Model</th>
+                                <th style="padding: 8px;">Source Joins</th>
+                                <th style="padding: 8px;">Join Keys</th>
+                                <th style="padding: 8px;">Analytical Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 8px;"><code>fact_policy_performance</code></td>
+                                <td style="padding: 8px;"><code>fct_policy + dim_customer + dim_agent + dim_coverage + fct_claim</code></td>
+                                <td style="padding: 8px;"><code>CustomerID, AgentID, CoverageCode, PolicyID</code></td>
+                                <td style="padding: 8px;">Underwriting Profitability: Computes Net Margin and Loss Ratio % per policy.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;"><code>fact_claims_settlement</code></td>
+                                <td style="padding: 8px;"><code>fct_claim + fct_policy + dim_customer</code></td>
+                                <td style="padding: 8px;"><code>PolicyID, CustomerID</code></td>
+                                <td style="padding: 8px;">Adjudication Triage: Compares claim amount against policy deductible and flags payout ratios.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;"><code>agg_agent_performance</code></td>
+                                <td style="padding: 8px;"><code>fact_policy_performance + dim_agent</code></td>
+                                <td style="padding: 8px;"><code>AgentID, MonthYear</code></td>
+                                <td style="padding: 8px;">Producer Sales: Identifies top-performing agents by written premium and portfolio loss ratio.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;"><code>agg_customer_risk</code></td>
+                                <td style="padding: 8px;"><code>fact_policy_performance + dim_customer</code></td>
+                                <td style="padding: 8px;"><code>CustomerID</code></td>
+                                <td style="padding: 8px;">Customer 360: Computes lifetime customer premium vs payout, establishing Risk Tiers.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>Data Modeling</span>
+                <span>Slide 4 of 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 5: Key Performance Indicators -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="slide-title">Core Business Metrics & Formulae</span>
+                <span class="slide-category">Business Intelligence</span>
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div class="box">
+                        <h4>1. Loss Ratio Percentage (%)</h4>
+                        <p style="font-family: monospace; color: var(--accent-gold); margin: 8px 0;">
+                            Loss Ratio = (Total Incurred Claims / Gross Written Premium) * 100
+                        </p>
+                        <p>Evaluates underwriting profitability. Health thresholds:</p>
+                        <ul>
+                            <li><strong>&le; 60%:</strong> Profitable (Healthy portfolio)</li>
+                            <li><strong>61% - 75%:</strong> Acceptable operational margin</li>
+                            <li><strong>&gt; 75%:</strong> Critical (Loss incurring)</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>2. Claims Payout Settlement Ratio</h4>
+                        <p style="font-family: monospace; color: var(--accent-gold); margin: 8px 0;">
+                            Payout Ratio = (Settled Amount / Claim Amount) * 100
+                        </p>
+                        <p>Monitors adjudication variance. Highlights:</p>
+                        <ul>
+                            <li>Claims settled below policy deductible.</li>
+                            <li>Anomalous claim amounts exceeding normal baseline.</li>
+                            <li>Severity classification (&ge; $50K High, &ge; $10K Med).</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>3. Turnaround SLA & Settlement Days</h4>
+                        <p style="font-family: monospace; color: var(--accent-gold); margin: 8px 0;">
+                            Settlement Days = DATEDIFF(ClaimDate, IncidentDate)
+                        </p>
+                        <p>Measures customer claim adjudication turnaround time:</p>
+                        <ul>
+                            <li><strong>&gt; 30 Days Pending:</strong> Urgent SLA Breach</li>
+                            <li><strong>15 - 30 Days:</strong> SLA Warning</li>
+                            <li><strong>&lt; 14 Days:</strong> On Track</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>4. Customer Lifetime Contribution</h4>
+                        <p style="font-family: monospace; color: var(--accent-gold); margin: 8px 0;">
+                            Net Contribution = Lifetime Premium - Lifetime Claims Paid
+                        </p>
+                        <p>Customer segmentation for retention and cross-sell:</p>
+                        <ul>
+                            <li><strong>Prime:</strong> Zero claims filed.</li>
+                            <li><strong>High Risk:</strong> Payout exceeds lifetime premium.</li>
+                            <li><strong>Cross-Sell Target:</strong> Single policy with clean history.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>KPI Framework</span>
+                <span>Slide 5 of 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 6: Semantic BI Views -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="slide-title">Curated Semantic Reporting Views</span>
+                <span class="slide-category">Reporting Layer</span>
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div class="box">
+                        <h4>vw_executive_kpi_dashboard</h4>
+                        <p>Target: <strong>Chief Underwriting Officer & Executives</strong></p>
+                        <ul>
+                            <li>Monthly Gross Written Premium vs Incurred Losses.</li>
+                            <li>Combined Loss Ratio trend with health status flags.</li>
+                            <li>Active Policy Count and average premium written per policy.</li>
+                            <li>Average settlement turnaround days across all claim lines.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>vw_claims_analyst_workbench</h4>
+                        <p>Target: <strong>Claims Adjusters & Adjudicators</strong></p>
+                        <ul>
+                            <li>Granular operational triage for pending and high-loss claims.</li>
+                            <li>Deductible eligibility flags (<code>BELOW_DEDUCTIBLE</code> vs <code>ELIGIBLE</code>).</li>
+                            <li>Severity tiering: High (&ge; $50K), Medium, Low.</li>
+                            <li>Proactive SLA breach alerts for claims pending &gt; 30 days.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>vw_agent_leaderboard</h4>
+                        <p>Target: <strong>Sales Management & Agency Operations</strong></p>
+                        <ul>
+                            <li>Agent sales rankings by total written premium volume.</li>
+                            <li>Portfolio Loss Ratio % per agent (underwriting quality check).</li>
+                            <li>Tier assignments: Platinum (&ge; $500K), Gold, Silver, Standard.</li>
+                            <li>Active policy retention and associated claim counts.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>vw_customer_360</h4>
+                        <p>Target: <strong>Customer Support & Marketing Operations</strong></p>
+                        <ul>
+                            <li>Unified customer demographic, policy, and claim profile.</li>
+                            <li>Lifetime Customer Premium vs Total Claims Paid Out.</li>
+                            <li>Customer Risk Tiering (Prime Zero Claims vs Frequent Claimant).</li>
+                            <li>Automated cross-sell opportunity identification.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>Semantic Layer</span>
+                <span>Slide 6 of 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 7: Security & Governance -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="slide-title">Enterprise Security, Governance & Audit</span>
+                <span class="slide-category">Trust & Compliance</span>
+            </div>
+            <div class="slide-content">
+                <div class="grid-3">
+                    <div class="box">
+                        <h4>Unity Catalog</h4>
+                        <ul>
+                            <li>Unified Metastore governing Bronze, Silver, Gold, and Semantic views.</li>
+                            <li>Three-level namespace isolation: <code>catalog.schema.table</code>.</li>
+                            <li>Centralized data lineage and column-level audit.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>Managed Identity (MSI)</h4>
+                        <ul>
+                            <li>Zero hardcoded passwords or PAT tokens in pipelines.</li>
+                            <li>ADF linked services connect to Databricks and ADLS Gen2 via Azure MSI.</li>
+                            <li>Azure Key Vault protects database credentials.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>State & Audit Logging</h4>
+                        <ul>
+                            <li>Centralized audit log: <code>dbo.PipelineExecutionLog</code>.</li>
+                            <li>Tracks BatchID, PipelineRunID, RowsCopied, and Runtimes.</li>
+                            <li>Stored procedures for start/end execution logging.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="box" style="margin-top: 20px;">
+                    <h4>Environment Maintenance Utility</h4>
+                    <p>Dedicated service pipeline <code>PL_Service_Cleanup_Tables</code> and notebook <code>nb_service_cleanup_tables</code> allow 1-click test environment resets (dropping Databricks tables, wiping external storage, and resetting watermarks).</p>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>Security & Governance</span>
+                <span>Slide 7 of 8</span>
+            </div>
+        </div>
+
+        <!-- Slide 8: Summary & Roadmap -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="slide-title">Architecture Summary & Future Roadmap</span>
+                <span class="slide-category">Next Steps</span>
+            </div>
+            <div class="slide-content">
+                <div class="grid-2">
+                    <div class="box">
+                        <h4>Architecture Accomplishments</h4>
+                        <ul>
+                            <li><strong>Seamless Ingestion:</strong> Zero duplicate reading on intraday runs via file parameter isolation.</li>
+                            <li><strong>Robust Medallion Tiers:</strong> Delta Lake UPSERTs with Schema Evolution across Bronze, Silver, and Gold.</li>
+                            <li><strong>Governed Semantic Views:</strong> Direct-consume reporting views for Power BI and analytical tools.</li>
+                            <li><strong>100% Version Controlled:</strong> Git repository contains all ADF pipelines, Databricks notebooks, and SQL scripts.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>Future Enhancements</h4>
+                        <ul>
+                            <li><strong>Power BI Direct Lake Mode:</strong> Direct connection from Power BI to Gold Delta tables without import refresh.</li>
+                            <li><strong>Machine Learning Integration:</strong> MLflow predictive models for claims fraud detection and lapse prediction.</li>
+                            <li><strong>Automated CI/CD:</strong> Azure DevOps / GitHub Actions pipeline for automated workspace promotion (Dev &rarr; QA &rarr; Prod).</li>
+                            <li><strong>Streaming Ingestion:</strong> Delta Live Tables (DLT) evaluation for real-time claim event processing.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer">
+                <span>Roadmap</span>
+                <span>Slide 8 of 8</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="controls">
+        <button id="prevBtn" class="btn" onclick="prevSlide()" disabled>&larr; Previous</button>
+        <span id="slideIndicator" style="color: var(--text-muted); font-size: 14px; font-weight: 600;">Slide 1 of 8</span>
+        <button id="nextBtn" class="btn" onclick="nextSlide()">Next &rarr;</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const indicator = document.getElementById('slideIndicator');
+
+        function updateSlide() {
+            slides.forEach((s, idx) => {
+                s.classList.toggle('active', idx === currentSlide);
+            });
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === slides.length - 1;
+            indicator.textContent = `Slide ${currentSlide + 1} of ${slides.length}`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+    </script>
+</body>
+</html>

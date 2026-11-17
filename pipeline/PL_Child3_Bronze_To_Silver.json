@@ -1,0 +1,183 @@
+{
+	"name": "PL_Child3_Bronze_To_Silver",
+	"properties": {
+		"description": "Child Pipeline 3: Cleanses and conforms raw Delta tables from bronze_catalog.raw_data into standardized dimensions and fact tables in silver_catalog.insurance_conformed using SCD Type 1 Upserts.",
+		"activities": [
+			{
+				"name": "Lookup_Log_Child3_Start",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Child3_Bronze_To_Silver'', @TableID = NULL, @TableName = ''All_Conformed_Tables'', @LoadType = ''Silver_Transform''; SELECT ''', pipeline().RunId, ''' AS RunId;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Databricks_Transform_Bronze_To_Silver",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Log_Child3_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_transform_bronze_to_silver",
+					"baseParameters": {
+						"bronze_catalog": {
+							"value": "@pipeline().parameters.BronzeCatalog",
+							"type": "Expression"
+						},
+						"bronze_schema": {
+							"value": "@pipeline().parameters.BronzeSchema",
+							"type": "Expression"
+						},
+						"silver_catalog": {
+							"value": "@pipeline().parameters.SilverCatalog",
+							"type": "Expression"
+						},
+						"silver_schema": {
+							"value": "@pipeline().parameters.SilverSchema",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ADB_HOME_01",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Lookup_Log_Child3_End_Success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Transform_Bronze_To_Silver",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_Child3_End_Failed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Transform_Bronze_To_Silver",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().parameters.BatchID, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Child 3 Bronze to Silver Transformation Failed''; SELECT ''Failed'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "String",
+				"defaultValue": "Manual_Run"
+			},
+			"BronzeCatalog": {
+				"type": "String",
+				"defaultValue": "bronze_catalog"
+			},
+			"BronzeSchema": {
+				"type": "String",
+				"defaultValue": "raw_data"
+			},
+			"SilverCatalog": {
+				"type": "String",
+				"defaultValue": "silver_catalog"
+			},
+			"SilverSchema": {
+				"type": "String",
+				"defaultValue": "insurance_conformed"
+			}
+		},
+		"annotations": []
+	}
+}

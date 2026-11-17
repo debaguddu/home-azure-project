@@ -1,0 +1,245 @@
+{
+	"name": "PL_Master_Medallion_End_To_End",
+	"properties": {
+		"description": "Master Medallion Pipeline: Orchestrates the complete end-to-end data lifecycle from On-Prem SQL Server through Bronze (Raw Delta), Silver (Conformed Facts & Dimensions), Gold (Analytical Marts), and Semantic Reporting Views.",
+		"activities": [
+			{
+				"name": "Lookup_Log_Medallion_Batch_Start",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', pipeline().RunId, ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Master_Medallion_End_To_End'', @TableID = NULL, @TableName = ''Full_Medallion_Run'', @LoadType = ''', pipeline().parameters.LoadType, '''; SELECT ''', pipeline().RunId, ''' AS BatchID;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "ExecutePipeline_IngestionMaster",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Log_Medallion_Batch_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Master_Metadata_Ingestion",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"TriggerName": {
+							"value": "@pipeline().parameters.TriggerName",
+							"type": "Expression"
+						},
+						"LoadType": {
+							"value": "@pipeline().parameters.LoadType",
+							"type": "Expression"
+						},
+						"DatabricksJobId": {
+							"value": "@pipeline().parameters.DatabricksJobId",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ExecutePipeline_BronzeToSilver",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ExecutePipeline_IngestionMaster",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Child3_Bronze_To_Silver",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"BatchID": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"BronzeCatalog": "bronze_catalog",
+						"BronzeSchema": "raw_data",
+						"SilverCatalog": "silver_catalog",
+						"SilverSchema": "insurance_conformed"
+					}
+				}
+			},
+			{
+				"name": "ExecutePipeline_SilverToGold",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ExecutePipeline_BronzeToSilver",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Child4_Silver_To_Gold",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"BatchID": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"SilverCatalog": "silver_catalog",
+						"SilverSchema": "insurance_conformed",
+						"GoldCatalog": "gold_catalog",
+						"GoldSchema": "insurance_analytics"
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_Medallion_Batch_End_Success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ExecutePipeline_SilverToGold",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().RunId, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_Medallion_Batch_End_Failed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ExecutePipeline_IngestionMaster",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "ExecutePipeline_BronzeToSilver",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "ExecutePipeline_SilverToGold",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', pipeline().RunId, ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Master Medallion Pipeline Execution Encountered Failures''; SELECT ''Failed'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"TriggerName": {
+				"type": "String",
+				"defaultValue": "Daily_Trigger"
+			},
+			"LoadType": {
+				"type": "String",
+				"defaultValue": "Incremental"
+			},
+			"DatabricksJobId": {
+				"type": "String",
+				"defaultValue": "202308513646851"
+			}
+		},
+		"annotations": []
+	}
+}

@@ -13,6 +13,11 @@ SELECT
 FROM
     dbo.WatermarkTable;
 
+SELECT
+    *
+FROM
+    dbo.DataTransformMetadata;
+
 -- Reset WatermarkTable to default ('1900-01-01 00:00:00')
 -- UPDATE dbo.WatermarkTable SET WatermarkValue = '1900-01-01 00:00:00', LastUpdatedDate = SYSUTCDATETIME();
 -- EXEC dbo.sp_ResetWatermark;
