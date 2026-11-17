@@ -42,8 +42,8 @@ flowchart LR
     end
 
     subgraph Storage["ADLS Gen2 & Unity Catalog"]
-        Landing["Landing (CSVs)\nhome/datalake/claims/{Table}/{Date}"]
-        Bronze["bronze_catalog.raw_data\n(Delta Lake)"]
+        Landing["Landing (Pipe CSV |)\nhome/datalake/claims/{Table}/{Date}"]
+        Bronze["bronze_catalog (Bronze Layer)\n(Parquet for Full / Delta for Incremental)"]
         Silver["silver_catalog.insurance_conformed\n(Conformed Dims & Facts)"]
         Gold["gold_catalog.insurance_analytics\n(Star Schema Marts)"]
         Semantic["gold_catalog.semantic_reporting\n(Direct BI Views)"]
@@ -72,8 +72,8 @@ flowchart LR
 
 | Layer | Catalog / Storage Path | Format | Processing Logic & Value |
 |---|---|---|---|
-| **Landing** | `adls://landing/home/datalake/claims/{Table}/{YYYY}/{MM}/{DD}/` | CSV | Raw, timestamped extraction batches isolated by filename |
-| **Bronze (Raw)** | `bronze_catalog.raw_data` | Delta Lake | Delta MERGE with Schema Evolution, technical audit columns (`InsertedTimestamp`, `UpdatedTimestamp`, `RecordAction`), per-file DQ duplicate check |
+| **Landing** | `adls://landing/home/datalake/claims/{Table}/{YYYY}/{MM}/{DD}/` | Pipe CSV (`\|`) | Raw, timestamped extraction batches isolated by filename with pipe delimiter |
+| **Bronze** | `bronze_catalog.raw_data` (`adls://bronze`) | Parquet / Delta | **Full Loads:** Snappy Parquet files; **Incremental Loads:** Delta MERGE with Schema Evolution, audit columns (`InsertedTimestamp`, `UpdatedTimestamp`, `RecordAction`), per-file DQ duplicate check |
 | **Silver** | `silver_catalog.insurance_conformed` | Delta Lake | Cleaned, typed, conformed dimensions (`dim_customer`, `dim_agent`, `dim_coverage`) and fact tables (`fct_policy`, `fct_claim`) with SCD Type 1 upsert |
 | **Gold** | `gold_catalog.insurance_analytics` | Delta Lake | Star schema analytical marts (`fact_policy_performance`, `fact_claims_settlement`) and monthly rollups (`agg_agent_performance_monthly`, `agg_claims_loss_ratio_by_coverage`, `agg_customer_risk_profile`) |
 | **Semantic** | `gold_catalog.semantic_reporting` | UC Views | Direct-consume reporting views for Power BI, C-level executive KPIs, and claims adjudicators |
@@ -97,8 +97,8 @@ flowchart LR
 │       ├── job_medallion_end_to_end.json / .yml      # Master Medallion multi-task DAG
 │       └── job_service_cleanup_tables.json / .yml    # Cleanup utility workflow
 ├── dataset/
-│   ├── DS_ADLS_Landing_CSV.json                 # Parameterized Landing ADLS CSV dataset
-│   ├── DS_ADLS_Bronze_CSV.json                  # Parameterized Bronze ADLS CSV dataset
+│   ├── DS_ADLS_Landing_CSV.json                 # Parameterized Landing ADLS pipe-delimited (|) CSV dataset
+│   ├── DS_ADLS_Bronze_Parquet.json              # Parameterized Bronze ADLS Snappy Parquet dataset (Full loads)
 │   ├── DS_ASQL_Generic.json                     # Generic Azure SQL Database dataset
 │   └── DS_SQL_Source.json                       # On-Premises SQL Server dataset
 ├── docs/
@@ -117,7 +117,7 @@ flowchart LR
 │   ├── PL_Master_Medallion_End_To_End.json      # Master End-to-End Medallion Orchestrator
 │   ├── PL_Master_Metadata_Ingestion.json        # Ingestion Orchestrator across active tables
 │   ├── PL_Child1_Source_To_Landing.json         # Source extraction to Landing CSV
-│   ├── PL_Child2_Landing_To_Bronze_Raw.json     # Landed CSV processing to Bronze Delta
+│   ├── PL_Child2_Landing_To_Bronze_Raw.json     # Landed pipe CSV processing to Bronze Parquet (Full) or Delta (Incremental)
 │   ├── PL_Child3_Bronze_To_Silver.json          # Bronze to Silver conformed transformation
 │   ├── PL_Child4_Silver_To_Gold.json            # Silver to Gold analytics & semantic deployment
 │   └── PL_Service_Cleanup_Tables.json           # 1-click table drop and storage path cleanup
@@ -140,7 +140,7 @@ flowchart LR
 | [PL_Master_Medallion_End_To_End](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Master_Medallion_End_To_End.json) | Master | Orchestrates complete lifecycle: Ingestion Master $\rightarrow$ Silver $\rightarrow$ Gold $\rightarrow$ Semantic |
 | [PL_Master_Metadata_Ingestion](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Master_Metadata_Ingestion.json) | Orchestrator | Iterates active tables in parallel, coordinating Child 1 and Child 2 |
 | [PL_Child1_Source_To_Landing](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child1_Source_To_Landing.json) | Worker | Queries SQL Server using dynamic watermark, generates unique filename, writes CSV, and returns `LandedFileName` via `pipelineReturnValue` |
-| [PL_Child2_Landing_To_Bronze_Raw](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child2_Landing_To_Bronze_Raw.json) | Worker | Passes isolated `file_name` into Databricks Job, evaluates per-file DQ, performs Delta MERGE with schema evolution, and updates watermark |
+| [PL_Child2_Landing_To_Bronze_Raw](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child2_Landing_To_Bronze_Raw.json) | Worker | Ingests landed pipe-delimited CSVs into Bronze Parquet (Full) or Delta tables with schema evolution & watermark updates (Incremental) |
 | [PL_Child3_Bronze_To_Silver](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child3_Bronze_To_Silver.json) | Worker | Invokes `nb_transform_bronze_to_silver` to build conformed dimensions & facts |
 | [PL_Child4_Silver_To_Gold](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child4_Silver_To_Gold.json) | Worker | Invokes `nb_transform_silver_to_gold` to build star schema marts and deploys reporting views |
 | [PL_Service_Cleanup_Tables](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Service_Cleanup_Tables.json) | Maintenance | Drops Unity Catalog tables, recursively deletes ADLS external paths, and resets watermarks |

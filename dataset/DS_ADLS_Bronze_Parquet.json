@@ -1,5 +1,5 @@
 {
-	"name": "DS_ADLS_Bronze_CSV",
+	"name": "DS_ADLS_Bronze_Parquet",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "LS_ADLS_HOME_01",
@@ -18,7 +18,7 @@
 			}
 		},
 		"annotations": [],
-		"type": "DelimitedText",
+		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
@@ -35,12 +35,8 @@
 					"type": "Expression"
 				}
 			},
-			"columnDelimiter": ",",
-			"escapeChar": "\\",
-			"firstRowAsHeader": true,
-			"quoteChar": "\""
+			"compressionCodec": "snappy"
 		},
 		"schema": []
 	}
 }
-

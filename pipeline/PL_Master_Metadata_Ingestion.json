@@ -56,7 +56,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@concat('SELECT TableID, TriggerName, SourceSchema, SourceTableName, LoadType, WatermarkColumn, TargetContainerLanding, TargetContainerBronze, TargetContainerRaw, IsActive, SendAlert, PrimaryKeys, MandatoryColumns FROM [dbo].[IngestionMetadata] WHERE TriggerName = ''', pipeline().parameters.TriggerName, ''' AND LoadType = ''', pipeline().parameters.LoadType, ''' AND IsActive = ''Y'';')",
+							"value": "@concat('SELECT TableID, TriggerName, SourceSchema, SourceTableName, LoadType, WatermarkColumn, TargetContainerLanding, TargetContainerBronze, IsActive, SendAlert, PrimaryKeys, MandatoryColumns FROM [dbo].[IngestionMetadata] WHERE TriggerName = ''', pipeline().parameters.TriggerName, ''' AND LoadType = ''', pipeline().parameters.LoadType, ''' AND IsActive = ''Y'';')",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -194,10 +194,6 @@
 									},
 									"TargetContainerBronze": {
 										"value": "@item().TargetContainerBronze",
-										"type": "Expression"
-									},
-									"TargetContainerRaw": {
-										"value": "@item().TargetContainerRaw",
 										"type": "Expression"
 									},
 									"PrimaryKeys": {

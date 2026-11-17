@@ -14,7 +14,6 @@ CREATE TABLE dbo.IngestionMetadata (
     WatermarkColumn         VARCHAR(100) NULL,     -- e.g. 'ModifiedDate'
     TargetContainerLanding  VARCHAR(100) NOT NULL DEFAULT 'landing',
     TargetContainerBronze   VARCHAR(100) NOT NULL DEFAULT 'bronze',
-    TargetContainerRaw      VARCHAR(100) NOT NULL DEFAULT 'raw',
     IsActive                CHAR(1)      NOT NULL DEFAULT 'Y',
     SendAlert               CHAR(1)      NOT NULL DEFAULT 'Y',
     PrimaryKeys             VARCHAR(255) NULL,     -- Comma-separated (e.g. 'PolicyID')

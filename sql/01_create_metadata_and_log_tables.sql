@@ -19,7 +19,6 @@ CREATE TABLE dbo.IngestionMetadata (
     WatermarkColumn         VARCHAR(100) NULL,                  -- e.g. 'ModifiedDate' (NULL for Full load)
     TargetContainerLanding  VARCHAR(100) NOT NULL DEFAULT 'landing',
     TargetContainerBronze   VARCHAR(100) NOT NULL DEFAULT 'bronze',
-    TargetContainerRaw      VARCHAR(100) NOT NULL DEFAULT 'raw',
     IsActive                CHAR(1)      NOT NULL DEFAULT 'Y',  -- 'Y' or 'N'
     SendAlert               CHAR(1)      NOT NULL DEFAULT 'Y',  -- 'Y' or 'N'
     PrimaryKeys             VARCHAR(200) NULL,                  -- e.g. 'PolicyID' (used for duplicate checks)

@@ -28,7 +28,7 @@
 						"volume_schema": "source_sql",
 						"landing_container": "landing",
 						"bronze_container": "bronze",
-						"raw_container": "raw",
+						"raw_container": "bronze",
 						"storage_account_name": "azureprojectdevadls01",
 						"folder_prefix": "home/datalake/claims",
 						"drop_uc_table": {
