@@ -5,11 +5,24 @@
 -- Database: sqldb-azureproject-dev-01
 -- ==============================================================================
 
--- 1. Create IngestionMetadata Table
+-- Drop dependent tables with foreign keys first to prevent error 3726
+IF OBJECT_ID('dbo.WatermarkTable', 'U') IS NOT NULL
+    DROP TABLE dbo.WatermarkTable;
+GO
+
+IF OBJECT_ID('dbo.DataTransformMetadata', 'U') IS NOT NULL
+    DROP TABLE dbo.DataTransformMetadata;
+GO
+
+IF OBJECT_ID('dbo.PipelineExecutionLog', 'U') IS NOT NULL
+    DROP TABLE dbo.PipelineExecutionLog;
+GO
+
 IF OBJECT_ID('dbo.IngestionMetadata', 'U') IS NOT NULL
     DROP TABLE dbo.IngestionMetadata;
 GO
 
+-- 1. Create IngestionMetadata Table
 CREATE TABLE dbo.IngestionMetadata (
     TableID                 INT IDENTITY(1,1) PRIMARY KEY,
     TriggerName             VARCHAR(100) NOT NULL,              -- e.g. 'Daily_Trigger', 'Manual_Trigger'
