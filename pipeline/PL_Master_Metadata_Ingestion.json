@@ -215,6 +215,10 @@
 									"DatabricksJobId": {
 										"value": "@pipeline().parameters.DatabricksJobId",
 										"type": "Expression"
+									},
+									"FileName": {
+										"value": "@coalesce(activity('ExecutePipeline_Child1').output.pipelineReturnValue.LandedFileName, '')",
+										"type": "Expression"
 									}
 								}
 							}

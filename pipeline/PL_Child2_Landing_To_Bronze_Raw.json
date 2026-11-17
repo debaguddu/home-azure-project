@@ -106,7 +106,11 @@
 									},
 									"target_catalog": "bronze_catalog",
 									"target_schema": "raw_data",
-									"folder_prefix": "home/datalake/claims"
+									"folder_prefix": "home/datalake/claims",
+									"file_name": {
+										"value": "@pipeline().parameters.FileName",
+										"type": "Expression"
+									}
 								}
 							},
 							"linkedServiceName": {
@@ -259,7 +263,10 @@
 									"storeSettings": {
 										"type": "AzureBlobFSReadSettings",
 										"recursive": true,
-										"wildcardFileName": "*.csv",
+										"wildcardFileName": {
+											"value": "@if(empty(pipeline().parameters.FileName), '*.csv', pipeline().parameters.FileName)",
+											"type": "Expression"
+										},
 										"enablePartitionDiscovery": false
 									},
 									"formatSettings": {
@@ -292,7 +299,10 @@
 											"value": "@concat('home/datalake/claims/', pipeline().parameters.SourceTableName, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
 											"type": "Expression"
 										},
-										"FileName": "*"
+										"FileName": {
+											"value": "@if(empty(pipeline().parameters.FileName), '*', pipeline().parameters.FileName)",
+											"type": "Expression"
+										}
 									}
 								}
 							],
@@ -470,6 +480,10 @@
 			"DatabricksWorkspaceUrl": {
 				"type": "String",
 				"defaultValue": "https://adb-7405612959366844.4.azuredatabricks.net"
+			},
+			"FileName": {
+				"type": "String",
+				"defaultValue": ""
 			}
 		},
 		"variables": {

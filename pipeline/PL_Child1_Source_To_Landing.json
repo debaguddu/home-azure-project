@@ -4,6 +4,19 @@
 		"description": "Child Pipeline 1: Ingests data from On-Premises SQL Server (DemoDB) to ADLS Gen2 Landing Zone partitioned by YYYY/MM/DD.",
 		"activities": [
 			{
+				"name": "SetVariable_LandedFileName",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LandedFileName",
+					"value": {
+						"value": "@if(empty(pipeline().parameters.FileName), concat(pipeline().parameters.SourceTableName, '_', formatDateTime(utcnow(), 'yyyyMMdd_HHmmss'), '.csv'), pipeline().parameters.FileName)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
 				"name": "Lookup_Log_Child1_Start",
 				"type": "Lookup",
 				"dependsOn": [],
@@ -40,6 +53,12 @@
 				"dependsOn": [
 					{
 						"activity": "Lookup_Log_Child1_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "SetVariable_LandedFileName",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -153,7 +172,7 @@
 											"type": "Expression"
 										},
 										"FileName": {
-											"value": "@concat(pipeline().parameters.SourceTableName, '_', formatDateTime(utcnow(), 'yyyyMMdd_HHmmss'), '.csv')",
+											"value": "@variables('LandedFileName')",
 											"type": "Expression"
 										}
 									}
@@ -246,7 +265,7 @@
 											"type": "Expression"
 										},
 										"FileName": {
-											"value": "@concat(pipeline().parameters.SourceTableName, '_', formatDateTime(utcnow(), 'yyyyMMdd_HHmmss'), '.csv')",
+											"value": "@variables('LandedFileName')",
 											"type": "Expression"
 										}
 									}
@@ -277,11 +296,43 @@
 				}
 			},
 			{
+				"name": "Set_Pipeline_Return_Value",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "If_Is_Incremental",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "LandedFileName",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('LandedFileName')"
+							}
+						},
+						{
+							"key": "RowsCopied",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('RowsCopied')"
+							}
+						}
+					]
+				}
+			},
+			{
 				"name": "Lookup_Log_Child1_End_Success",
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "If_Is_Incremental",
+						"activity": "Set_Pipeline_Return_Value",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -382,12 +433,20 @@
 			"SendAlert": {
 				"type": "String",
 				"defaultValue": "Y"
+			},
+			"FileName": {
+				"type": "String",
+				"defaultValue": ""
 			}
 		},
 		"variables": {
 			"RowsCopied": {
 				"type": "String",
 				"defaultValue": "0"
+			},
+			"LandedFileName": {
+				"type": "String",
+				"defaultValue": ""
 			}
 		},
 		"annotations": []

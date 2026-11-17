@@ -15,6 +15,7 @@
         "base_parameters": {
           "source_table_name": "",
           "folder_date": "",
+          "file_name": "",
           "folder_prefix": "home/datalake/claims"
         },
         "source": "WORKSPACE"
