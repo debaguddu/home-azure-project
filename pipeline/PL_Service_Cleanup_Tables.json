@@ -1,11 +1,11 @@
 {
 	"name": "PL_Service_Cleanup_Tables",
 	"properties": {
-		"description": "Service Pipeline: Environment cleanup utility. Deletes external ADLS Gen2 storage paths (Landing, Bronze, Raw) and drops Unity Catalog Delta tables in Azure Databricks. Optionally resets watermarks and in-progress execution logs.",
+		"description": "Service Pipeline: Environment cleanup utility. Triggers Databricks Job to delete external ADLS Gen2 storage paths (Landing, Bronze) and drop Unity Catalog Delta tables in Azure Databricks without requiring interactive cluster creation permissions. Optionally resets watermarks and in-progress execution logs in Azure SQL.",
 		"activities": [
 			{
-				"name": "Databricks_Cleanup_Tables",
-				"type": "DatabricksNotebook",
+				"name": "Databricks_Job_Cleanup_Tables",
+				"type": "DatabricksJob",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.01:00:00",
@@ -16,8 +16,11 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_service_cleanup_tables",
-					"baseParameters": {
+					"jobId": {
+						"value": "@pipeline().parameters.DatabricksJobId",
+						"type": "Expression"
+					},
+					"jobParameters": {
 						"source_table_name": {
 							"value": "@pipeline().parameters.TableName",
 							"type": "Expression"
@@ -63,7 +66,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Databricks_Cleanup_Tables",
+						"activity": "Databricks_Job_Cleanup_Tables",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -114,7 +117,7 @@
 				"type": "IfCondition",
 				"dependsOn": [
 					{
-						"activity": "Databricks_Cleanup_Tables",
+						"activity": "Databricks_Job_Cleanup_Tables",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -163,6 +166,10 @@
 				"type": "String",
 				"defaultValue": "ALL"
 			},
+			"DatabricksJobId": {
+				"type": "String",
+				"defaultValue": "Service_Cleanup_Tables"
+			},
 			"DropDatabricksTable": {
 				"type": "String",
 				"defaultValue": "true"
@@ -195,4 +202,3 @@
 		"annotations": []
 	}
 }
-

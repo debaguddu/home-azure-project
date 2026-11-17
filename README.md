@@ -143,7 +143,7 @@ flowchart LR
 | [PL_Child2_Landing_To_Bronze_Raw](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child2_Landing_To_Bronze_Raw.json) | Worker | Ingests landed pipe-delimited CSVs into Bronze Parquet (Full) or Delta tables with schema evolution & watermark updates (Incremental) |
 | [PL_Child3_Bronze_To_Silver](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child3_Bronze_To_Silver.json) | Worker | Invokes `nb_transform_bronze_to_silver` to build conformed dimensions & facts |
 | [PL_Child4_Silver_To_Gold](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child4_Silver_To_Gold.json) | Worker | Invokes `nb_transform_silver_to_gold` to build star schema marts and deploys reporting views |
-| [PL_Service_Cleanup_Tables](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Service_Cleanup_Tables.json) | Maintenance | Drops Unity Catalog tables, recursively deletes ADLS external paths, and resets watermarks |
+| [PL_Service_Cleanup_Tables](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Service_Cleanup_Tables.json) | Maintenance | Triggers Databricks Job activity (free-tier friendly, no cluster creation permissions needed) to drop Unity Catalog tables, delete ADLS storage paths, and reset watermarks |
 
 ---
 
