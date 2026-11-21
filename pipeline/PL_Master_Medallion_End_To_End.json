@@ -72,11 +72,67 @@
 				}
 			},
 			{
+				"name": "If_Full_Load_Sync_Bronze",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ExecutePipeline_IngestionMaster",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(toUpper(pipeline().parameters.LoadType), 'FULL')",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "ExecutePipeline_Sync_FullLoad_Bronze",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Sync_FullLoad_Bronze_Tables",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"BatchID": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"SourceTableName": "ALL",
+									"TargetCatalog": "bronze_catalog",
+									"TargetSchema": "raw_data",
+									"VolumeCatalog": "landing_catalog",
+									"VolumeSchema": "source_sql",
+									"LandingContainer": "landing",
+									"BronzeContainer": "bronze",
+									"StorageAccountName": "azureprojectdevadls01",
+									"FolderPrefix": "home/datalake/claims",
+									"DatabricksJobId": {
+										"value": "@if(empty(pipeline().parameters.DatabricksSyncJobId), pipeline().parameters.DatabricksJobId, pipeline().parameters.DatabricksSyncJobId)",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					],
+					"ifFalseActivities": []
+				}
+			},
+			{
 				"name": "ExecutePipeline_BronzeToSilver",
 				"type": "ExecutePipeline",
 				"dependsOn": [
 					{
-						"activity": "ExecutePipeline_IngestionMaster",
+						"activity": "If_Full_Load_Sync_Bronze",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -186,6 +242,12 @@
 						]
 					},
 					{
+						"activity": "If_Full_Load_Sync_Bronze",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
 						"activity": "ExecutePipeline_BronzeToSilver",
 						"dependencyConditions": [
 							"Failed"
@@ -238,9 +300,12 @@
 			"DatabricksJobId": {
 				"type": "String",
 				"defaultValue": "202308513646851"
+			},
+			"DatabricksSyncJobId": {
+				"type": "String",
+				"defaultValue": ""
 			}
 		},
 		"annotations": []
 	}
 }
-

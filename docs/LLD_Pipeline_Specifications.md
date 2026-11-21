@@ -194,6 +194,28 @@ erDiagram
 
 ## 5. Pipeline Orchestration Architecture
 
+### 5.1 Pipeline Inventory
+
+| Pipeline Name | Type | Description | Compute / Activity |
+|:---|:---|:---|:---|
+| `PL_Master_Medallion_End_To_End` | Master Orchestrator | End-to-end driver: Ingestion $\rightarrow$ Full-Load Bronze Sync $\rightarrow$ Silver $\rightarrow$ Gold | Pipeline References & Conditional Execution |
+| `PL_Master_Metadata_Ingestion` | Ingestion Master | Iterates over active tables in `IngestionMetadata` triggering Child 1 and Child 2 | ForEach Activity |
+| `PL_Child1_Source_To_Landing` | Ingestion Child | Extracts On-Prem SQL data to Landing CSV with pipe delimiter | ADF Copy Activity |
+| `PL_Child2_Landing_To_Bronze_Raw` | Ingestion Child | Incremental: Databricks Job DQ + Delta Upsert. Full: Copy to Bronze Parquet | Databricks Job / ADF Copy Activity |
+| `PL_Sync_FullLoad_Bronze_Tables` | Sync Child | Drops & recreates Bronze external tables & creates Landing UC volumes for full-load datasets | Databricks Job (`Sync_Full_Load_Bronze_Tables`) |
+| `PL_Child3_Bronze_To_Silver` | Transformation Child | Conforms Bronze raw tables into Silver dimensions and facts | Databricks Notebook / Job |
+| `PL_Child4_Silver_To_Gold` | Transformation Child | Builds Gold analytical marts and semantic reporting views | Databricks Notebook / Job |
+| `PL_Service_Cleanup_Tables` | Utility Service | Environment maintenance: drops UC tables and deletes storage paths | Databricks Job (`Service_Cleanup_Tables`) |
+
+### 5.2 Scheduled Triggers
+
+| Trigger Name | Target Pipeline | Schedule (IST) | Parameters |
+|:---|:---|:---|:---|
+| `TR_Medallion_Daily_Full_Load` | `PL_Master_Medallion_End_To_End` | Daily at 16:30 IST | `LoadType: Full`, `TriggerName: Daily_Trigger` |
+| `TR_Medallion_Daily_Incremental_Load` | `PL_Master_Medallion_End_To_End` | Daily at 16:45 IST | `LoadType: Incremental`, `TriggerName: Daily_Trigger` |
+
+### 5.3 Execution Sequence
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -201,6 +223,7 @@ sequenceDiagram
     participant SQL as Azure SQL DB (Control Plane)
     participant C1 as Child 1 (Source to Landing)
     participant C2 as Child 2 (Landing to Bronze)
+    participant CSync as Sync Full Bronze (If Full Load)
     participant C3 as Child 3 (Bronze to Silver)
     participant C4 as Child 4 (Silver to Gold)
     participant ADB as Azure Databricks (Compute)
@@ -211,10 +234,19 @@ sequenceDiagram
     C1->>C1: Copy to Landing/{Table}/{Date}/{FileName}.csv
     C1-->>ADF: pipelineReturnValue (LandedFileName)
     ADF->>C2: ExecutePipeline (FileName)
-    C2->>ADB: Run Databricks Job (file_name)
-    ADB->>ADB: Read single file, DQ Check, Delta UPSERT
-    ADB-->>C2: Return max_watermark_value
-    C2->>SQL: sp_UpdateWatermark (TableID, NewWatermark)
+    alt Incremental Load
+        C2->>ADB: Run Databricks Job (file_name)
+        ADB->>ADB: Read single file, DQ Check, Delta UPSERT
+        ADB-->>C2: Return max_watermark_value
+        C2->>SQL: sp_UpdateWatermark (TableID, NewWatermark)
+    else Full Load
+        C2->>C2: Copy Landing CSV to Bronze Parquet
+    end
+    opt LoadType == 'Full'
+        ADF->>CSync: ExecutePipeline (PL_Sync_FullLoad_Bronze_Tables)
+        CSync->>ADB: Run Databricks Job (Sync_Full_Load_Bronze_Tables)
+        ADB->>ADB: Create landing volumes & drop/recreate Bronze tables
+    end
     ADF->>C3: ExecutePipeline (Bronze to Silver)
     C3->>ADB: nb_transform_bronze_to_silver
     ADB->>ADB: Conform dims & facts with SCD1

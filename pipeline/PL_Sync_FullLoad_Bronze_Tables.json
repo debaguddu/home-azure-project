@@ -1,0 +1,230 @@
+{
+	"name": "PL_Sync_FullLoad_Bronze_Tables",
+	"properties": {
+		"description": "Full Load Bronze Sync Pipeline: Triggers Databricks Job to create Unity Catalog Landing Volumes (if not exists) and drops & recreates external tables in bronze_catalog.raw_data pointing to newly loaded Parquet files for full-load tables (CoverageTypes, Agents).",
+		"activities": [
+			{
+				"name": "Lookup_Log_FullSync_Start",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', if(empty(pipeline().parameters.BatchID), pipeline().RunId, pipeline().parameters.BatchID), ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Sync_FullLoad_Bronze_Tables'', @TableID = NULL, @TableName = ''', pipeline().parameters.SourceTableName, ''', @LoadType = ''Full_Bronze_Sync''; SELECT ''', pipeline().RunId, ''' AS RunId;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Databricks_Job_Sync_Full_Bronze",
+				"type": "DatabricksJob",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Log_FullSync_Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"jobId": {
+						"value": "@pipeline().parameters.DatabricksJobId",
+						"type": "Expression"
+					},
+					"jobParameters": {
+						"source_table_name": {
+							"value": "@pipeline().parameters.SourceTableName",
+							"type": "Expression"
+						},
+						"target_catalog": {
+							"value": "@pipeline().parameters.TargetCatalog",
+							"type": "Expression"
+						},
+						"target_schema": {
+							"value": "@pipeline().parameters.TargetSchema",
+							"type": "Expression"
+						},
+						"volume_catalog": {
+							"value": "@pipeline().parameters.VolumeCatalog",
+							"type": "Expression"
+						},
+						"volume_schema": {
+							"value": "@pipeline().parameters.VolumeSchema",
+							"type": "Expression"
+						},
+						"landing_container": {
+							"value": "@pipeline().parameters.LandingContainer",
+							"type": "Expression"
+						},
+						"bronze_container": {
+							"value": "@pipeline().parameters.BronzeContainer",
+							"type": "Expression"
+						},
+						"storage_account_name": {
+							"value": "@pipeline().parameters.StorageAccountName",
+							"type": "Expression"
+						},
+						"folder_prefix": {
+							"value": "@pipeline().parameters.FolderPrefix",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ADB_HOME_01",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Lookup_Log_FullSync_End_Success",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Job_Sync_Full_Bronze",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', if(empty(pipeline().parameters.BatchID), pipeline().RunId, pipeline().parameters.BatchID), ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lookup_Log_FullSync_End_Failed",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Databricks_Job_Sync_Full_Bronze",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:05:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', if(empty(pipeline().parameters.BatchID), pipeline().RunId, pipeline().parameters.BatchID), ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Databricks Job Sync Full Load Bronze Failed''; SELECT ''Failed'' AS Status;') ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Generic",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "dbo",
+							"TableName": "PipelineExecutionLog"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"BatchID": {
+				"type": "String",
+				"defaultValue": ""
+			},
+			"SourceTableName": {
+				"type": "String",
+				"defaultValue": "ALL"
+			},
+			"TargetCatalog": {
+				"type": "String",
+				"defaultValue": "bronze_catalog"
+			},
+			"TargetSchema": {
+				"type": "String",
+				"defaultValue": "raw_data"
+			},
+			"VolumeCatalog": {
+				"type": "String",
+				"defaultValue": "landing_catalog"
+			},
+			"VolumeSchema": {
+				"type": "String",
+				"defaultValue": "source_sql"
+			},
+			"LandingContainer": {
+				"type": "String",
+				"defaultValue": "landing"
+			},
+			"BronzeContainer": {
+				"type": "String",
+				"defaultValue": "bronze"
+			},
+			"StorageAccountName": {
+				"type": "String",
+				"defaultValue": "azureprojectdevadls01"
+			},
+			"FolderPrefix": {
+				"type": "String",
+				"defaultValue": "home/datalake/claims"
+			},
+			"DatabricksJobId": {
+				"type": "String",
+				"defaultValue": ""
+			}
+		},
+		"annotations": []
+	}
+}
