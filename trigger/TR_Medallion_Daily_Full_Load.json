@@ -13,7 +13,7 @@
 			"FullLoad",
 			"Production"
 		],
-		"runtimeState": "Started",
+		"runtimeState": "Stopped",
 		"pipelines": [
 			{
 				"pipelineReference": {
