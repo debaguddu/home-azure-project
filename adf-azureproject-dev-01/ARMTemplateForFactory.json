@@ -2606,6 +2606,16 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/EC2-SQL-IR')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/TR_Medallion_Daily_Full_Load')]",
 			"type": "Microsoft.DataFactory/factories/triggers",
 			"apiVersion": "2018-06-01",
@@ -2614,9 +2624,21 @@
 				"annotations": [
 					"Medallion",
 					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
 					"Production"
 				],
-				"runtimeState": "Stopped",
+				"runtimeState": "Started",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -2661,9 +2683,21 @@
 				"annotations": [
 					"Medallion",
 					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
 					"Production"
 				],
-				"runtimeState": "Stopped",
+				"runtimeState": "Started",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -2698,16 +2732,6 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/PL_Master_Medallion_End_To_End')]"
 			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/EC2-SQL-IR')]",
-			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "SelfHosted",
-				"typeProperties": {}
-			},
-			"dependsOn": []
 		}
 	]
 }

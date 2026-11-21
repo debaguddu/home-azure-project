@@ -2624,9 +2624,21 @@
 				"annotations": [
 					"Medallion",
 					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
+					"Production",
+					"Medallion",
+					"FullLoad",
 					"Production"
 				],
-				"runtimeState": "Stopped",
+				"runtimeState": "Started",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -2671,9 +2683,21 @@
 				"annotations": [
 					"Medallion",
 					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
+					"Production",
+					"Medallion",
+					"IncrementalLoad",
 					"Production"
 				],
-				"runtimeState": "Stopped",
+				"runtimeState": "Started",
 				"pipelines": [
 					{
 						"pipelineReference": {
