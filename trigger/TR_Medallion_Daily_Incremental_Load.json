@@ -1,0 +1,42 @@
+{
+	"name": "TR_Medallion_Daily_Incremental_Load",
+	"properties": {
+		"description": "Daily Incremental Load trigger for PL_Master_Medallion_End_To_End scheduled at 16:45 IST.",
+		"annotations": [
+			"Medallion",
+			"IncrementalLoad",
+			"Production"
+		],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_Master_Medallion_End_To_End",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"TriggerName": "Daily_Trigger",
+					"LoadType": "Incremental",
+					"DatabricksJobId": "202308513646851"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2026-11-21T16:45:00",
+				"timeZone": "India Standard Time",
+				"schedule": {
+					"minutes": [
+						45
+					],
+					"hours": [
+						16
+					]
+				}
+			}
+		}
+	}
+}

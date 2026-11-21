@@ -1,0 +1,42 @@
+{
+	"name": "TR_Medallion_Daily_Full_Load",
+	"properties": {
+		"description": "Daily Full Load trigger for PL_Master_Medallion_End_To_End scheduled at 16:30 IST.",
+		"annotations": [
+			"Medallion",
+			"FullLoad",
+			"Production"
+		],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_Master_Medallion_End_To_End",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"TriggerName": "Daily_Trigger",
+					"LoadType": "Full",
+					"DatabricksJobId": "202308513646851"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2026-11-21T16:30:00",
+				"timeZone": "India Standard Time",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						16
+					]
+				}
+			}
+		}
+	}
+}

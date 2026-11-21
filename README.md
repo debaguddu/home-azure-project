@@ -128,6 +128,9 @@ flowchart LR
 │   ├── 04_reset_watermarks.sql                  # Utility script to reset high-watermark timestamps
 │   ├── 05_reset_inprogress_logs.sql             # Utility script to reset stuck InProgress execution logs
 │   └── 06_create_semantic_views.sql             # DDL for Unity Catalog semantic reporting views
+├── trigger/
+│   ├── TR_Medallion_Daily_Full_Load.json        # Schedule trigger for Daily Full Load at 16:30 IST
+│   └── TR_Medallion_Daily_Incremental_Load.json # Schedule trigger for Daily Incremental Load at 16:45 IST
 └── DEPLOYMENT_GUIDE.md                          # Step-by-step infrastructure deployment manual
 ```
 
@@ -144,6 +147,15 @@ flowchart LR
 | [PL_Child3_Bronze_To_Silver](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child3_Bronze_To_Silver.json) | Worker | Invokes `nb_transform_bronze_to_silver` to build conformed dimensions & facts |
 | [PL_Child4_Silver_To_Gold](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Child4_Silver_To_Gold.json) | Worker | Invokes `nb_transform_silver_to_gold` to build star schema marts and deploys reporting views |
 | [PL_Service_Cleanup_Tables](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Service_Cleanup_Tables.json) | Maintenance | Triggers Databricks Job activity (free-tier friendly, no cluster creation permissions needed) to drop Unity Catalog tables, delete ADLS storage paths, and reset watermarks |
+
+---
+
+## ⏰ Scheduled Triggers
+
+| Trigger | Target Pipeline | Schedule (IST) | Load Type | Parameters Passed |
+|---|---|---|---|---|
+| [TR_Medallion_Daily_Full_Load](file:///c:/Debaranjan/Git_Projects/home-azure-project/trigger/TR_Medallion_Daily_Full_Load.json) | `PL_Master_Medallion_End_To_End` | Daily at **16:30 IST** | `Full` | `TriggerName`: `Daily_Trigger`, `LoadType`: `Full` |
+| [TR_Medallion_Daily_Incremental_Load](file:///c:/Debaranjan/Git_Projects/home-azure-project/trigger/TR_Medallion_Daily_Incremental_Load.json) | `PL_Master_Medallion_End_To_End` | Daily at **16:45 IST** | `Incremental` | `TriggerName`: `Daily_Trigger`, `LoadType`: `Incremental` |
 
 ---
 
