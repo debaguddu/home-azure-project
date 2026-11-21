@@ -55,17 +55,9 @@
 			"type": "string",
 			"defaultValue": "202308513646851"
 		},
-		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
+		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
 			"type": "string",
-			"defaultValue": "Daily_Trigger"
-		},
-		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_LoadType": {
-			"type": "string",
-			"defaultValue": "Incremental"
-		},
-		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
-			"type": "string",
-			"defaultValue": "202308513646851"
+			"defaultValue": "308693633677595"
 		}
 	},
 	"variables": {
@@ -2024,6 +2016,247 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/PL_Sync_FullLoad_Bronze_Tables')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Full Load Bronze Sync Pipeline: Triggers Databricks Job to create Unity Catalog Landing Volumes (if not exists) and drops & recreates external tables in bronze_catalog.raw_data pointing to newly loaded Parquet files for full-load tables (CoverageTypes, Agents).",
+				"activities": [
+					{
+						"name": "Lookup_Log_FullSync_Start",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat('EXEC [dbo].[sp_LogPipelineStart] @BatchID = ''', if(empty(pipeline().parameters.BatchID), pipeline().RunId, pipeline().parameters.BatchID), ''', @PipelineRunID = ''', pipeline().RunId, ''', @PipelineName = ''PL_Sync_FullLoad_Bronze_Tables'', @TableID = NULL, @TableName = ''', pipeline().parameters.SourceTableName, ''', @LoadType = ''Full_Bronze_Sync''; SELECT ''', pipeline().RunId, ''' AS RunId;') ",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_ASQL_Generic",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "dbo",
+									"TableName": "PipelineExecutionLog"
+								}
+							}
+						}
+					},
+					{
+						"name": "Databricks_Job_Sync_Full_Bronze",
+						"type": "DatabricksJob",
+						"dependsOn": [
+							{
+								"activity": "Lookup_Log_FullSync_Start",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.01:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"jobId": {
+								"value": "@pipeline().parameters.DatabricksJobId",
+								"type": "Expression"
+							},
+							"jobParameters": {
+								"source_table_name": {
+									"value": "@pipeline().parameters.SourceTableName",
+									"type": "Expression"
+								},
+								"target_catalog": {
+									"value": "@pipeline().parameters.TargetCatalog",
+									"type": "Expression"
+								},
+								"target_schema": {
+									"value": "@pipeline().parameters.TargetSchema",
+									"type": "Expression"
+								},
+								"volume_catalog": {
+									"value": "@pipeline().parameters.VolumeCatalog",
+									"type": "Expression"
+								},
+								"volume_schema": {
+									"value": "@pipeline().parameters.VolumeSchema",
+									"type": "Expression"
+								},
+								"landing_container": {
+									"value": "@pipeline().parameters.LandingContainer",
+									"type": "Expression"
+								},
+								"bronze_container": {
+									"value": "@pipeline().parameters.BronzeContainer",
+									"type": "Expression"
+								},
+								"storage_account_name": {
+									"value": "@pipeline().parameters.StorageAccountName",
+									"type": "Expression"
+								},
+								"folder_prefix": {
+									"value": "@pipeline().parameters.FolderPrefix",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_ADB_HOME_01",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Lookup_Log_FullSync_End_Success",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Databricks_Job_Sync_Full_Bronze",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:05:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', if(empty(pipeline().parameters.BatchID), pipeline().RunId, pipeline().parameters.BatchID), ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Success'', @RowsCopied = NULL, @ErrorMessage = NULL; SELECT ''Success'' AS Status;') ",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_ASQL_Generic",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "dbo",
+									"TableName": "PipelineExecutionLog"
+								}
+							}
+						}
+					},
+					{
+						"name": "Lookup_Log_FullSync_End_Failed",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Databricks_Job_Sync_Full_Bronze",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:05:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat('EXEC [dbo].[sp_LogPipelineEnd] @BatchID = ''', if(empty(pipeline().parameters.BatchID), pipeline().RunId, pipeline().parameters.BatchID), ''', @PipelineRunID = ''', pipeline().RunId, ''', @Status = ''Failed'', @RowsCopied = NULL, @ErrorMessage = ''Databricks Job Sync Full Load Bronze Failed''; SELECT ''Failed'' AS Status;') ",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_ASQL_Generic",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "dbo",
+									"TableName": "PipelineExecutionLog"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"BatchID": {
+						"type": "String"
+					},
+					"SourceTableName": {
+						"type": "String",
+						"defaultValue": "ALL"
+					},
+					"TargetCatalog": {
+						"type": "String",
+						"defaultValue": "bronze_catalog"
+					},
+					"TargetSchema": {
+						"type": "String",
+						"defaultValue": "raw_data"
+					},
+					"VolumeCatalog": {
+						"type": "String",
+						"defaultValue": "landing_catalog"
+					},
+					"VolumeSchema": {
+						"type": "String",
+						"defaultValue": "source_sql"
+					},
+					"LandingContainer": {
+						"type": "String",
+						"defaultValue": "landing"
+					},
+					"BronzeContainer": {
+						"type": "String",
+						"defaultValue": "bronze"
+					},
+					"StorageAccountName": {
+						"type": "String",
+						"defaultValue": "azureprojectdevadls01"
+					},
+					"FolderPrefix": {
+						"type": "String",
+						"defaultValue": "home/datalake/claims"
+					},
+					"DatabricksJobId": {
+						"type": "String",
+						"defaultValue": "308693633677595"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ASQL_Generic')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADB_HOME_01')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/PL_Master_Metadata_Ingestion')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2433,11 +2666,67 @@
 						}
 					},
 					{
+						"name": "If_Full_Load_Sync_Bronze",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "ExecutePipeline_IngestionMaster",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(toUpper(pipeline().parameters.LoadType), 'FULL')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "ExecutePipeline_Sync_FullLoad_Bronze",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "PL_Sync_FullLoad_Bronze_Tables",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"BatchID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"SourceTableName": "ALL",
+											"TargetCatalog": "bronze_catalog",
+											"TargetSchema": "raw_data",
+											"VolumeCatalog": "landing_catalog",
+											"VolumeSchema": "source_sql",
+											"LandingContainer": "landing",
+											"BronzeContainer": "bronze",
+											"StorageAccountName": "azureprojectdevadls01",
+											"FolderPrefix": "home/datalake/claims",
+											"DatabricksJobId": {
+												"value": "@if(empty(pipeline().parameters.DatabricksSyncJobId), pipeline().parameters.DatabricksJobId, pipeline().parameters.DatabricksSyncJobId)",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
 						"name": "ExecutePipeline_BronzeToSilver",
 						"type": "ExecutePipeline",
 						"dependsOn": [
 							{
-								"activity": "ExecutePipeline_IngestionMaster",
+								"activity": "If_Full_Load_Sync_Bronze",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -2548,6 +2837,12 @@
 								]
 							},
 							{
+								"activity": "If_Full_Load_Sync_Bronze",
+								"dependencyConditions": [
+									"Failed"
+								]
+							},
+							{
 								"activity": "ExecutePipeline_BronzeToSilver",
 								"dependencyConditions": [
 									"Failed"
@@ -2604,6 +2899,10 @@
 					"DatabricksJobId": {
 						"type": "String",
 						"defaultValue": "202308513646851"
+					},
+					"DatabricksSyncJobId": {
+						"type": "String",
+						"defaultValue": "308693633677595"
 					}
 				},
 				"annotations": []
@@ -2612,7 +2911,8 @@
 				"[concat(variables('factoryId'), '/datasets/DS_ASQL_Generic')]",
 				"[concat(variables('factoryId'), '/pipelines/PL_Master_Metadata_Ingestion')]",
 				"[concat(variables('factoryId'), '/pipelines/PL_Child3_Bronze_To_Silver')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_Child4_Silver_To_Gold')]"
+				"[concat(variables('factoryId'), '/pipelines/PL_Child4_Silver_To_Gold')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_Sync_FullLoad_Bronze_Tables')]"
 			]
 		},
 		{
@@ -2622,18 +2922,6 @@
 			"properties": {
 				"description": "Daily Full Load trigger for PL_Master_Medallion_End_To_End scheduled at 16:30 IST.",
 				"annotations": [
-					"Medallion",
-					"FullLoad",
-					"Production",
-					"Medallion",
-					"FullLoad",
-					"Production",
-					"Medallion",
-					"FullLoad",
-					"Production",
-					"Medallion",
-					"FullLoad",
-					"Production",
 					"Medallion",
 					"FullLoad",
 					"Production"
@@ -2648,7 +2936,8 @@
 						"parameters": {
 							"TriggerName": "[parameters('TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName')]",
 							"LoadType": "[parameters('TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_LoadType')]",
-							"DatabricksJobId": "[parameters('TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId')]"
+							"DatabricksJobId": "[parameters('TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId')]",
+							"DatabricksSyncJobId": "[parameters('TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId')]"
 						}
 					}
 				],
@@ -2662,65 +2951,6 @@
 						"schedule": {
 							"minutes": [
 								30
-							],
-							"hours": [
-								16
-							]
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/PL_Master_Medallion_End_To_End')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/TR_Medallion_Daily_Incremental_Load')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "Daily Incremental Load trigger for PL_Master_Medallion_End_To_End scheduled at 16:45 IST.",
-				"annotations": [
-					"Medallion",
-					"IncrementalLoad",
-					"Production",
-					"Medallion",
-					"IncrementalLoad",
-					"Production",
-					"Medallion",
-					"IncrementalLoad",
-					"Production",
-					"Medallion",
-					"IncrementalLoad",
-					"Production",
-					"Medallion",
-					"IncrementalLoad",
-					"Production"
-				],
-				"runtimeState": "Started",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "PL_Master_Medallion_End_To_End",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"TriggerName": "[parameters('TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName')]",
-							"LoadType": "[parameters('TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_LoadType')]",
-							"DatabricksJobId": "[parameters('TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId')]"
-						}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Day",
-						"interval": 1,
-						"startTime": "2026-11-21T16:45:00",
-						"timeZone": "India Standard Time",
-						"schedule": {
-							"minutes": [
-								45
 							],
 							"hours": [
 								16

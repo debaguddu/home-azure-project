@@ -41,6 +41,9 @@
 		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
 			"value": "202308513646851"
 		},
+		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+			"value": "308693633677595"
+		},
 		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
 			"value": "Daily_Trigger"
 		},
@@ -49,6 +52,9 @@
 		},
 		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
 			"value": "202308513646851"
+		},
+		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+			"value": "308693633677595"
 		},
 		"containerUri": {
 			"value": ""

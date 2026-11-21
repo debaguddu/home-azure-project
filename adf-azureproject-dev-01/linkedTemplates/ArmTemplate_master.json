@@ -55,6 +55,10 @@
 			"type": "string",
 			"defaultValue": "202308513646851"
 		},
+		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+			"type": "string",
+			"defaultValue": "308693633677595"
+		},
 		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
 			"type": "string",
 			"defaultValue": "Daily_Trigger"
@@ -66,6 +70,10 @@
 		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
 			"type": "string",
 			"defaultValue": "202308513646851"
+		},
+		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+			"type": "string",
+			"defaultValue": "308693633677595"
 		},
 		"containerUri": {
 			"type": "string",
@@ -130,6 +138,27 @@
 					"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
 						"value": "[parameters('TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId')]"
 					},
+					"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+						"value": "[parameters('TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "adf-azureproject-dev-01_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
 					"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
 						"value": "[parameters('TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName')]"
 					},
@@ -138,10 +167,15 @@
 					},
 					"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
 						"value": "[parameters('TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId')]"
+					},
+					"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+						"value": "[parameters('TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId')]"
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'adf-azureproject-dev-01_ArmTemplate_0')]"
+			]
 		}
 	]
 }
