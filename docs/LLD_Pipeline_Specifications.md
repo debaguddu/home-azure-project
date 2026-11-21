@@ -203,8 +203,8 @@ erDiagram
 | `PL_Child1_Source_To_Landing` | Ingestion Child | Extracts On-Prem SQL data to Landing CSV with pipe delimiter | ADF Copy Activity |
 | `PL_Child2_Landing_To_Bronze_Raw` | Ingestion Child | Incremental: Databricks Job DQ + Delta Upsert. Full: Copy to Bronze Parquet | Databricks Job / ADF Copy Activity |
 | `PL_Sync_FullLoad_Bronze_Tables` | Sync Child | Drops & recreates Bronze external tables & creates Landing UC volumes for full-load datasets | Databricks Job (`Sync_Full_Load_Bronze_Tables`) |
-| `PL_Child3_Bronze_To_Silver` | Transformation Child | Conforms Bronze raw tables into Silver dimensions and facts | Databricks Notebook / Job |
-| `PL_Child4_Silver_To_Gold` | Transformation Child | Builds Gold analytical marts and semantic reporting views | Databricks Notebook / Job |
+| `PL_Child3_Bronze_To_Silver` | Transformation Child | Conforms Bronze raw tables into Silver dimensions and facts | Databricks Job (`Bronze_to_Silver`) |
+| `PL_Child4_Silver_To_Gold` | Transformation Child | Builds Gold analytical marts and semantic reporting views | Databricks Job (`Silver_to_Gold`) |
 | `PL_Service_Cleanup_Tables` | Utility Service | Environment maintenance: drops UC tables and deletes storage paths | Databricks Job (`Service_Cleanup_Tables`) |
 
 ### 5.2 Scheduled Triggers

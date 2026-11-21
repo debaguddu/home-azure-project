@@ -1,7 +1,7 @@
 {
 	"name": "PL_Child3_Bronze_To_Silver",
 	"properties": {
-		"description": "Child Pipeline 3: Cleanses and conforms raw Delta tables from bronze_catalog.raw_data into standardized dimensions and fact tables in silver_catalog.insurance_conformed using SCD Type 1 Upserts.",
+		"description": "Child Pipeline 3: Cleanses and conforms raw Delta tables from bronze_catalog.raw_data into standardized dimensions and fact tables in silver_catalog.insurance_conformed using SCD Type 1 Upserts via Databricks Job.",
 		"activities": [
 			{
 				"name": "Lookup_Log_Child3_Start",
@@ -35,8 +35,8 @@
 				}
 			},
 			{
-				"name": "Databricks_Transform_Bronze_To_Silver",
-				"type": "DatabricksNotebook",
+				"name": "Databricks_Job_Bronze_To_Silver",
+				"type": "DatabricksJob",
 				"dependsOn": [
 					{
 						"activity": "Lookup_Log_Child3_Start",
@@ -54,8 +54,11 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_transform_bronze_to_silver",
-					"baseParameters": {
+					"jobId": {
+						"value": "@pipeline().parameters.DatabricksJobId",
+						"type": "Expression"
+					},
+					"jobParameters": {
 						"bronze_catalog": {
 							"value": "@pipeline().parameters.BronzeCatalog",
 							"type": "Expression"
@@ -84,7 +87,7 @@
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Databricks_Transform_Bronze_To_Silver",
+						"activity": "Databricks_Job_Bronze_To_Silver",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -122,7 +125,7 @@
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Databricks_Transform_Bronze_To_Silver",
+						"activity": "Databricks_Job_Bronze_To_Silver",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -176,9 +179,12 @@
 			"SilverSchema": {
 				"type": "String",
 				"defaultValue": "insurance_conformed"
+			},
+			"DatabricksJobId": {
+				"type": "String",
+				"defaultValue": ""
 			}
 		},
 		"annotations": []
 	}
 }
-

@@ -1,7 +1,7 @@
 {
 	"name": "PL_Child4_Silver_To_Gold",
 	"properties": {
-		"description": "Child Pipeline 4: Aggregates conformed Silver models into curated Gold analytical marts (fact_policy_performance, fact_claims_settlement, monthly aggregates) and deploys reporting Semantic Views in gold_catalog.semantic_reporting.",
+		"description": "Child Pipeline 4: Aggregates conformed Silver models into curated Gold analytical marts (fact_policy_performance, fact_claims_settlement, monthly aggregates) and deploys reporting Semantic Views in gold_catalog.semantic_reporting via Databricks Job.",
 		"activities": [
 			{
 				"name": "Lookup_Log_Child4_Start",
@@ -35,8 +35,8 @@
 				}
 			},
 			{
-				"name": "Databricks_Transform_Silver_To_Gold",
-				"type": "DatabricksNotebook",
+				"name": "Databricks_Job_Silver_To_Gold",
+				"type": "DatabricksJob",
 				"dependsOn": [
 					{
 						"activity": "Lookup_Log_Child4_Start",
@@ -54,8 +54,11 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_transform_silver_to_gold",
-					"baseParameters": {
+					"jobId": {
+						"value": "@pipeline().parameters.DatabricksJobId",
+						"type": "Expression"
+					},
+					"jobParameters": {
 						"silver_catalog": {
 							"value": "@pipeline().parameters.SilverCatalog",
 							"type": "Expression"
@@ -80,39 +83,11 @@
 				}
 			},
 			{
-				"name": "Databricks_Deploy_Semantic_Views",
-				"type": "DatabricksNotebook",
-				"dependsOn": [
-					{
-						"activity": "Databricks_Transform_Silver_To_Gold",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.00:30:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"notebookPath": "/Workspace/Shared/home-azure-project/databricks/notebooks/nb_create_semantic_views",
-					"baseParameters": {}
-				},
-				"linkedServiceName": {
-					"referenceName": "LS_ADB_HOME_01",
-					"type": "LinkedServiceReference"
-				}
-			},
-			{
 				"name": "Lookup_Log_Child4_End_Success",
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Databricks_Deploy_Semantic_Views",
+						"activity": "Databricks_Job_Silver_To_Gold",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -150,13 +125,7 @@
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Databricks_Transform_Silver_To_Gold",
-						"dependencyConditions": [
-							"Failed"
-						]
-					},
-					{
-						"activity": "Databricks_Deploy_Semantic_Views",
+						"activity": "Databricks_Job_Silver_To_Gold",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -210,9 +179,12 @@
 			"GoldSchema": {
 				"type": "String",
 				"defaultValue": "insurance_analytics"
+			},
+			"DatabricksJobId": {
+				"type": "String",
+				"defaultValue": ""
 			}
 		},
 		"annotations": []
 	}
 }
-

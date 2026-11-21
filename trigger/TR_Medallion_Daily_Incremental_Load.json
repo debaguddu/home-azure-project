@@ -18,7 +18,9 @@
 					"TriggerName": "Daily_Trigger",
 					"LoadType": "Incremental",
 					"DatabricksJobId": "202308513646851",
-					"DatabricksSyncJobId": "308693633677595"
+					"DatabricksSyncJobId": "308693633677595",
+					"DatabricksBronzeToSilverJobId": "",
+					"DatabricksSilverToGoldJobId": ""
 				}
 			}
 		],

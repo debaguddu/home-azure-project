@@ -156,7 +156,11 @@
 						"BronzeCatalog": "bronze_catalog",
 						"BronzeSchema": "raw_data",
 						"SilverCatalog": "silver_catalog",
-						"SilverSchema": "insurance_conformed"
+						"SilverSchema": "insurance_conformed",
+						"DatabricksJobId": {
+							"value": "@pipeline().parameters.DatabricksBronzeToSilverJobId",
+							"type": "Expression"
+						}
 					}
 				}
 			},
@@ -189,7 +193,11 @@
 						"SilverCatalog": "silver_catalog",
 						"SilverSchema": "insurance_conformed",
 						"GoldCatalog": "gold_catalog",
-						"GoldSchema": "insurance_analytics"
+						"GoldSchema": "insurance_analytics",
+						"DatabricksJobId": {
+							"value": "@pipeline().parameters.DatabricksSilverToGoldJobId",
+							"type": "Expression"
+						}
 					}
 				}
 			},
@@ -304,6 +312,14 @@
 			"DatabricksSyncJobId": {
 				"type": "String",
 				"defaultValue": "308693633677595"
+			},
+			"DatabricksBronzeToSilverJobId": {
+				"type": "String",
+				"defaultValue": ""
+			},
+			"DatabricksSilverToGoldJobId": {
+				"type": "String",
+				"defaultValue": ""
 			}
 		},
 		"annotations": []
