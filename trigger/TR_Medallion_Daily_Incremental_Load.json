@@ -5,18 +5,6 @@
 		"annotations": [
 			"Medallion",
 			"IncrementalLoad",
-			"Production",
-			"Medallion",
-			"IncrementalLoad",
-			"Production",
-			"Medallion",
-			"IncrementalLoad",
-			"Production",
-			"Medallion",
-			"IncrementalLoad",
-			"Production",
-			"Medallion",
-			"IncrementalLoad",
 			"Production"
 		],
 		"runtimeState": "Started",
@@ -29,7 +17,8 @@
 				"parameters": {
 					"TriggerName": "Daily_Trigger",
 					"LoadType": "Incremental",
-					"DatabricksJobId": "202308513646851"
+					"DatabricksJobId": "202308513646851",
+					"DatabricksSyncJobId": "308693633677595"
 				}
 			}
 		],

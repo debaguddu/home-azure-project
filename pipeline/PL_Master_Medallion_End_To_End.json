@@ -303,7 +303,7 @@
 			},
 			"DatabricksSyncJobId": {
 				"type": "String",
-				"defaultValue": ""
+				"defaultValue": "308693633677595"
 			}
 		},
 		"annotations": []
