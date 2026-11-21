@@ -5,9 +5,21 @@
 		"annotations": [
 			"Medallion",
 			"FullLoad",
+			"Production",
+			"Medallion",
+			"FullLoad",
+			"Production",
+			"Medallion",
+			"FullLoad",
+			"Production",
+			"Medallion",
+			"FullLoad",
+			"Production",
+			"Medallion",
+			"FullLoad",
 			"Production"
 		],
-		"runtimeState": "Stopped",
+		"runtimeState": "Started",
 		"pipelines": [
 			{
 				"pipelineReference": {
