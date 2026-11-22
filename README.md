@@ -4,6 +4,7 @@
 [![Azure Databricks](https://img.shields.io/badge/Azure%20Databricks-Unity%20Catalog-orange?logo=databricks)](https://www.databricks.com/)
 [![Delta Lake](https://img.shields.io/badge/Delta%20Lake-ACID%20Storage-00ADD8?logo=delta)](https://delta.io/)
 [![Power BI](https://img.shields.io/badge/Power%20BI-Semantic%20Layer-F2C811?logo=powerbi)](https://powerbi.microsoft.com/)
+[![ADF Auto-Publish](https://github.com/debaguddu/home-azure-project/actions/workflows/adf_auto_publish.yml/badge.svg)](https://github.com/debaguddu/home-azure-project/actions/workflows/adf_auto_publish.yml)
 
 A modern, metadata-driven enterprise data platform that automates multi-table ingestion from an On-Premises / Hybrid SQL Server (`DemoDB`) into Azure Data Lake Storage Gen2 (`azureprojectdevadls01`), processes data across a governed **Medallion Architecture** (Landing $\rightarrow$ Bronze $\rightarrow$ Silver $\rightarrow$ Gold), and deploys business semantic views for C-level dashboards and operational analytics.
 
