@@ -19,8 +19,8 @@
 					"LoadType": "Full",
 					"DatabricksJobId": "202308513646851",
 					"DatabricksSyncJobId": "308693633677595",
-					"DatabricksBronzeToSilverJobId": "",
-					"DatabricksSilverToGoldJobId": ""
+					"DatabricksBronzeToSilverJobId": "466350837846976",
+					"DatabricksSilverToGoldJobId": "1076549010168499"
 				}
 			}
 		],

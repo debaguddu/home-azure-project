@@ -315,11 +315,11 @@
 			},
 			"DatabricksBronzeToSilverJobId": {
 				"type": "String",
-				"defaultValue": ""
+				"defaultValue": "466350837846976"
 			},
 			"DatabricksSilverToGoldJobId": {
 				"type": "String",
-				"defaultValue": ""
+				"defaultValue": "1076549010168499"
 			}
 		},
 		"annotations": []
