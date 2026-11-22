@@ -80,7 +80,7 @@ jobs:
         if: ${{ env.HAVE_AZURE_CREDS == 'true' }}
         env:
           HAVE_AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' }}
-        uses: Azure/data-factory-deploy-action@v1.2.5
+        uses: Azure/data-factory-deploy-action@v1.2.0
         with:
           resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
           dataFactoryName: adf-azureproject-dev-01
