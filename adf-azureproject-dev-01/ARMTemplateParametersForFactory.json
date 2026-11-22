@@ -1,60 +1,72 @@
 {
-	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
-	"contentVersion": "1.0.0.0",
-	"parameters": {
-		"factoryName": {
-			"value": "adf-azureproject-dev-01"
-		},
-		"LS_ABLB_HOME_01_properties_typeProperties_serviceEndpoint": {
-			"value": "https://azureprojectdevblob01.blob.core.windows.net/"
-		},
-		"LS_ADLS_HOME_01_properties_typeProperties_url": {
-			"value": "https://azureprojectdevadls01.dfs.core.windows.net/"
-		},
-		"LS_ASQL_HOME_01_properties_typeProperties_server": {
-			"value": "sql-azureproject-dev-cus-01.database.windows.net"
-		},
-		"LS_ASQL_HOME_01_properties_typeProperties_database": {
-			"value": "sqldb-azureproject-dev-01"
-		},
-		"LS_ASQL_HOME_01_properties_typeProperties_userName": {
-			"value": "admin001"
-		},
-		"LS_KV_HOME_01_properties_typeProperties_baseUrl": {
-			"value": "https://kv-azureproject-dev-01.vault.azure.net/"
-		},
-		"LS_SQL_SERVER_01_properties_typeProperties_server": {
-			"value": "EC2AMAZ-B7776UI\\SQLEXPRESS"
-		},
-		"LS_SQL_SERVER_01_properties_typeProperties_database": {
-			"value": "DemoDB"
-		},
-		"LS_SQL_SERVER_01_properties_typeProperties_userName": {
-			"value": "sa"
-		},
-		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
-			"value": "Daily_Trigger"
-		},
-		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_LoadType": {
-			"value": "Full"
-		},
-		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
-			"value": "202308513646851"
-		},
-		"TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
-			"value": "308693633677595"
-		},
-		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
-			"value": "Daily_Trigger"
-		},
-		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_LoadType": {
-			"value": "Incremental"
-		},
-		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
-			"value": "202308513646851"
-		},
-		"TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
-			"value": "308693633677595"
-		}
-	}
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "value": "adf-azureproject-dev-01"
+        },
+        "LS_ABLB_HOME_01_properties_typeProperties_serviceEndpoint": {
+            "value": "https://azureprojectdevblob01.blob.core.windows.net/"
+        },
+        "LS_ADLS_HOME_01_properties_typeProperties_url": {
+            "value": "https://azureprojectdevadls01.dfs.core.windows.net/"
+        },
+        "LS_ASQL_HOME_01_properties_typeProperties_server": {
+            "value": "sql-azureproject-dev-cus-01.database.windows.net"
+        },
+        "LS_ASQL_HOME_01_properties_typeProperties_database": {
+            "value": "sqldb-azureproject-dev-01"
+        },
+        "LS_ASQL_HOME_01_properties_typeProperties_userName": {
+            "value": "admin001"
+        },
+        "LS_KV_HOME_01_properties_typeProperties_baseUrl": {
+            "value": "https://kv-azureproject-dev-01.vault.azure.net/"
+        },
+        "LS_SQL_SERVER_01_properties_typeProperties_server": {
+            "value": "EC2AMAZ-B7776UI\\SQLEXPRESS"
+        },
+        "LS_SQL_SERVER_01_properties_typeProperties_database": {
+            "value": "DemoDB"
+        },
+        "LS_SQL_SERVER_01_properties_typeProperties_userName": {
+            "value": "sa"
+        },
+        "TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
+            "value": "Daily_Trigger"
+        },
+        "TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_LoadType": {
+            "value": "Full"
+        },
+        "TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
+            "value": "202308513646851"
+        },
+        "TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+            "value": "308693633677595"
+        },
+        "TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksBronzeToSilverJobId": {
+            "value": "466350837846976"
+        },
+        "TR_Medallion_Daily_Full_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSilverToGoldJobId": {
+            "value": "1076549010168499"
+        },
+        "TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_TriggerName": {
+            "value": "Daily_Trigger"
+        },
+        "TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_LoadType": {
+            "value": "Incremental"
+        },
+        "TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksJobId": {
+            "value": "202308513646851"
+        },
+        "TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSyncJobId": {
+            "value": "308693633677595"
+        },
+        "TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksBronzeToSilverJobId": {
+            "value": "466350837846976"
+        },
+        "TR_Medallion_Daily_Incremental_Load_properties_PL_Master_Medallion_End_To_End_parameters_DatabricksSilverToGoldJobId": {
+            "value": "1076549010168499"
+        }
+    }
 }
