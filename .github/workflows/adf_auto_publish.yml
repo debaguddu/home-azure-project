@@ -39,7 +39,9 @@ jobs:
             echo "::error::AZURE_RESOURCE_GROUP secret is not set in GitHub repository settings!"
             exit 1
           fi
-          npm run build
+          mkdir -p build/adf-azureproject-dev-01
+          FACTORY_ID="/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}/providers/Microsoft.DataFactory/factories/adf-azureproject-dev-01"
+          node node_modules/@microsoft/azure-data-factory-utilities/lib/index.js export "$GITHUB_WORKSPACE" "$FACTORY_ID" "build/adf-azureproject-dev-01"
 
       - name: Push ARM Templates to adf_publish branch
         run: |
