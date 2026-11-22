@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build-and-publish:
@@ -64,6 +66,26 @@ jobs:
             git push origin adf_publish
             echo "Successfully published ARM templates to adf_publish branch!"
           fi
+
+      - name: Login to Azure
+        if: ${{ env.HAVE_AZURE_CREDS == 'true' }}
+        env:
+          HAVE_AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          enable-AzPSSession: true
+
+      - name: Deploy to Azure Data Factory Live Service
+        if: ${{ env.HAVE_AZURE_CREDS == 'true' }}
+        env:
+          HAVE_AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: Azure/data-factory-deploy-action@v1.2.5
+        with:
+          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          dataFactoryName: adf-azureproject-dev-01
+          armTemplateFile: ./build/adf-azureproject-dev-01/ARMTemplateForFactory.json
+          armTemplateParametersFile: ./build/adf-azureproject-dev-01/ARMTemplateParametersForFactory.json
 
       - name: Auto-Pull in Databricks Git Folder
         env:
