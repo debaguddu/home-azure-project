@@ -10,6 +10,8 @@ crash.log
 crash.*.log
 
 # Exclude all .tfvars files with secrets if needed, or keep base tfvars
+*.tfvars
+!*.tfvars.example
 *.tfvars.json
 
 # Ignore override files as they are usually used only locally

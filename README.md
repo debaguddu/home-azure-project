@@ -212,13 +212,29 @@ Explore the comprehensive design documentation in the [`docs/`](file:///c:/Debar
 
 ## 🚀 Deployment & Verification Guide
 
+For detailed step-by-step setup, see the complete [DEPLOYMENT_GUIDE.md](file:///c:/Debaranjan/Git_Projects/home-azure-project/DEPLOYMENT_GUIDE.md).
+
+### Quickstart Workflow:
+
 1. **Deploy Control Plane Objects (Azure SQL Database):**
    - Execute [01_create_metadata_and_log_tables.sql](file:///c:/Debaranjan/Git_Projects/home-azure-project/sql/01_create_metadata_and_log_tables.sql) to create schemas, watermark tables, and logging procedures.
    - Execute [02_seed_metadata.sql](file:///c:/Debaranjan/Git_Projects/home-azure-project/sql/02_seed_metadata.sql) to seed the 5 source tables, initial watermarks, and Silver/Gold metadata.
-2. **Synchronize Git in Databricks:**
-   - In Databricks **Workspace** > **Shared** > `home-azure-project`, click **Pull** on branch `project01`.
-3. **Execute Master Pipeline (Azure Data Factory):**
-   - Trigger **`PL_Master_Medallion_End_To_End`** in ADF.
+
+2. **Configure Azure Databricks (Unity Catalog & Git):**
+   - Execute [01_unity_catalog_setup.sql](file:///c:/Debaranjan/Git_Projects/home-azure-project/databricks/sql/01_unity_catalog_setup.sql) in Databricks SQL Editor to configure catalogs (`landing_catalog`, `bronze_catalog`, `silver_catalog`, `gold_catalog`), external locations, and volumes.
+   - Link repository in Databricks **Workspace** $\rightarrow$ **Repos** on branch `develop`.
+
+3. **Configure CI/CD Automation (GitHub Actions):**
+   - In GitHub repository **Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions**, configure:
+     - `AZURE_SUBSCRIPTION_ID`: Azure Subscription GUID
+     - `AZURE_RESOURCE_GROUP`: Target Resource Group (`rg-azureproject-dev-01`)
+     - `DATABRICKS_TOKEN`: Databricks Personal Access Token (PAT)
+     - `DATABRICKS_REPO_ID`: Numeric Databricks Git folder ID (e.g. `2906326734200206`)
+   - Any push to `develop` automatically compiles ARM templates to `adf_publish` and triggers git pull in Databricks!
+
+4. **Execute Master Pipeline (Azure Data Factory):**
+   - Trigger [PL_Master_Medallion_End_To_End](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Master_Medallion_End_To_End.json) in ADF Studio with `LoadType = Full` or `Incremental`.
    - The master pipeline orchestrates ingestion from SQL Server into Landing, processes Bronze Delta, conforms Silver dimensions & facts, aggregates Gold analytical marts, and deploys Semantic Views.
-4. **Environment Reset (When Needed):**
-   - Run **`PL_Service_Cleanup_Tables`** in ADF with `TableName = ALL` to wipe test data, drop tables, and reset watermarks in 1-click.
+
+5. **Environment Reset (When Needed):**
+   - Run [PL_Service_Cleanup_Tables](file:///c:/Debaranjan/Git_Projects/home-azure-project/pipeline/PL_Service_Cleanup_Tables.json) in ADF with `TableName = ALL` to wipe test data, drop tables, and reset watermarks in 1-click.

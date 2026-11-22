@@ -5,3 +5,14 @@
 *.tfplan
 crash.log
 crash.*.log
+
+# Sensitive variable and secret files
+*.tfvars
+!*.tfvars.example
+*.tfvars.json
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.publishsettings
