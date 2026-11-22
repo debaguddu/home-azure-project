@@ -1,0 +1,64 @@
+name: ADF Auto-Publish to adf_publish
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+
+      - name: Install ADF Utilities
+        run: npm install
+
+      - name: Validate and Export ARM Templates
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        run: |
+          if [ -z "$AZURE_SUBSCRIPTION_ID" ]; then
+            echo "::error::AZURE_SUBSCRIPTION_ID secret is not set in GitHub repository settings!"
+            exit 1
+          fi
+          if [ -z "$AZURE_RESOURCE_GROUP" ]; then
+            echo "::error::AZURE_RESOURCE_GROUP secret is not set in GitHub repository settings!"
+            exit 1
+          fi
+          npm run build
+
+      - name: Push ARM Templates to adf_publish branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone adf_publish branch into a temporary directory
+          git clone --depth 1 --branch adf_publish https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git publish-worktree
+
+          # Update factory folder with freshly generated ARM templates
+          rm -rf publish-worktree/adf-azureproject-dev-01
+          cp -r build/adf-azureproject-dev-01 publish-worktree/
+
+          cd publish-worktree
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes in ARM templates to commit."
+          else
+            git commit -m "chore(ci): auto-publish ARM templates from develop [skip ci]"
+            git push origin adf_publish
+            echo "Successfully published ARM templates to adf_publish branch!"
+          fi
