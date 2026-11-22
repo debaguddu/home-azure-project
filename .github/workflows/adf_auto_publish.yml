@@ -64,3 +64,31 @@ jobs:
             git push origin adf_publish
             echo "Successfully published ARM templates to adf_publish branch!"
           fi
+
+      - name: Auto-Pull in Databricks Git Folder
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST || 'https://adb-7405612959366844.4.azuredatabricks.net' }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_REPO_ID: ${{ secrets.DATABRICKS_REPO_ID }}
+        run: |
+          if [ -z "$DATABRICKS_TOKEN" ] || [ -z "$DATABRICKS_REPO_ID" ]; then
+            echo "::warning::DATABRICKS_TOKEN or DATABRICKS_REPO_ID is not configured in GitHub Secrets. Skipping Databricks auto-pull."
+            exit 0
+          fi
+          echo "Triggering Databricks Git Folder pull on develop branch..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
+            -H "Authorization: Bearer ${DATABRICKS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"branch": "develop"}' \
+            "${DATABRICKS_HOST}/api/2.0/repos/${DATABRICKS_REPO_ID}")
+
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "Databricks API Response: $BODY"
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "Successfully updated Databricks Git Folder to latest develop commit!"
+          else
+            echo "::error::Databricks pull failed with HTTP status $HTTP_STATUS: $BODY"
+            exit 1
+          fi
