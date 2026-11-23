@@ -436,3 +436,4 @@ with tab4:
         st.dataframe(df_cust, use_container_width=True)
     else:
         st.info("No customer data available in `vw_customer_360`.")
+

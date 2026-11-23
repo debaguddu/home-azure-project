@@ -11,3 +11,4 @@ echo.
 echo Starting Streamlit web application on http://localhost:8501...
 streamlit run app.py
 pause
+

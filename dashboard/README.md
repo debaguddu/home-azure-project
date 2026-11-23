@@ -67,3 +67,4 @@ You can connect in either of two ways:
 4. **👤 Customer 360 & Risk Tiers (`vw_customer_360`)**:
    - Interactive scatter plot: Lifetime Customer Premium vs. Total Incurred Losses.
    - Bubble size scaled by total policies held.
+
