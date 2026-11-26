@@ -1,0 +1,4 @@
+PolicyID,CustomerID,CustomerName,CustomerCity,PolicyType,PremiumAmount,DeductibleAmount,PolicyStatus,Operation,SequenceTimestamp,UnexpectedExtraField
+1013,513,Leo Martin,Chicago,Auto,1380.00,500.00,ACTIVE,INSERT,2026-11-22 08:00:00,EXTRA_DATA_A
+1014,514,Mia Clark,San Jose,Home,2950.00,1000.00,ACTIVE,INSERT,2026-11-22 09:00:00,EXTRA_DATA_B
+,515,NoID User,Austin,Auto,1100.00,500.00,ACTIVE,INSERT,2026-11-22 10:00:00,CRITICAL_MISSING_PK
