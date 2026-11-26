@@ -1,0 +1,6 @@
+PolicyID,CustomerID,CustomerName,CustomerCity,PolicyType,PremiumAmount,DeductibleAmount,PolicyStatus,Operation,SequenceTimestamp
+1001,501,John Doe,Fort Worth,Auto,1320.00,500.00,ACTIVE,UPDATE,2026-11-21 09:15:00
+1002,502,Alice Smith,Miami,Home,2100.00,1000.00,CANCELLED,DELETE,2026-11-21 10:00:00
+1005,505,David Brown,Boulder,Auto,1420.00,500.00,ACTIVE,UPDATE,2026-11-21 11:30:00
+1011,511,Jack Thomas,Phoenix,Auto,1150.00,500.00,ACTIVE,INSERT,2026-11-21 14:00:00
+1012,512,Karen White,Dallas,Life,920.00,0.00,ACTIVE,INSERT,2026-11-21 15:30:00
