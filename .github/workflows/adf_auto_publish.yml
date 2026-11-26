@@ -109,7 +109,10 @@ jobs:
 
           echo "Databricks API Response: $BODY"
           if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "Successfully updated Databricks Git Folder to latest develop commit!"
+            echo "Successfully updated Databricks Git Folder!"
+          elif echo "$BODY" | grep -q "GIT_CONFLICT"; then
+            echo "::warning::Databricks workspace has uncommitted edits. Skipping auto-pull to protect active user changes. Please pull manually in Databricks UI."
+            exit 0  # Do not break the pipeline
           else
             echo "::error::Databricks pull failed with HTTP status $HTTP_STATUS: $BODY"
             exit 1
