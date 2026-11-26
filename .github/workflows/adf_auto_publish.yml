@@ -1,10 +1,21 @@
-name: ADF Auto-Publish to adf_publish
+name: ADF & Databricks Smart Hybrid Deployment
 
 on:
   push:
     branches:
       - develop
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deployment Scope'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - both
+          - databricks
+          - adf
 
 permissions:
   contents: write
@@ -13,6 +24,8 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    env:
+      HAVE_AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' }}
 
     steps:
       - name: Checkout develop branch
@@ -20,15 +33,113 @@ jobs:
         with:
           fetch-depth: 0
 
+      # -------------------------------------------------------------------------
+      # STEP 1: HYBRID SCOPE DETECTION (Commit Flags + File Path Diff + UI Choice)
+      # -------------------------------------------------------------------------
+      - name: Detect Deployment Scope
+        id: detect
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          DISPATCH_TARGET="${{ inputs.target }}"
+
+          echo "Inspecting Commit Message: $COMMIT_MSG"
+          echo "Manual Dispatch Input: $DISPATCH_TARGET"
+
+          DEPLOY_ADF="false"
+          DEPLOY_DATABRICKS="false"
+          DECISION_REASON=""
+
+          # 1. Manual Workflow Dispatch selection (from GitHub Actions Web UI)
+          if [ -n "$DISPATCH_TARGET" ] && [ "$DISPATCH_TARGET" != "auto" ]; then
+            if [ "$DISPATCH_TARGET" = "both" ]; then
+              DEPLOY_ADF="true"
+              DEPLOY_DATABRICKS="true"
+              DECISION_REASON="Manual UI dispatch: target=both"
+            elif [ "$DISPATCH_TARGET" = "databricks" ]; then
+              DEPLOY_DATABRICKS="true"
+              DECISION_REASON="Manual UI dispatch: target=databricks"
+            elif [ "$DISPATCH_TARGET" = "adf" ]; then
+              DEPLOY_ADF="true"
+              DECISION_REASON="Manual UI dispatch: target=adf"
+            fi
+
+          # 2. Explicit Commit Message Flags: --both, [all], [both]
+          elif echo "$COMMIT_MSG" | grep -qiE -- "(--both|\[all\]|\[both\])"; then
+            DEPLOY_ADF="true"
+            DEPLOY_DATABRICKS="true"
+            DECISION_REASON="Explicit commit flag: --both"
+
+          # 3. Explicit Commit Message Flags: --databricks, [adb], [databricks]
+          elif echo "$COMMIT_MSG" | grep -qiE -- "(--databricks|\[adb\]|\[databricks\])"; then
+            DEPLOY_DATABRICKS="true"
+            DECISION_REASON="Explicit commit flag: --databricks"
+
+          # 4. Explicit Commit Message Flags: --azure, --adf, [adf], [azure]
+          elif echo "$COMMIT_MSG" | grep -qiE -- "(--azure|--adf|\[adf\]|\[azure\])"; then
+            DEPLOY_ADF="true"
+            DECISION_REASON="Explicit commit flag: --azure"
+
+          # 5. Automatic Detection based on Changed File Paths
+          else
+            echo "No explicit flag found. Auto-detecting from changed files in git diff..."
+            if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            else
+              CHANGED_FILES=$(git show --pretty="" --name-only HEAD)
+            fi
+
+            echo "Changed files in this commit:"
+            echo "$CHANGED_FILES"
+
+            HAS_DATABRICKS="false"
+            HAS_ADF="false"
+
+            if echo "$CHANGED_FILES" | grep -qiE "^databricks/"; then
+              HAS_DATABRICKS="true"
+            fi
+
+            if echo "$CHANGED_FILES" | grep -qiE "^(pipeline/|dataset/|linkedService/|factory/|dataflow/|trigger/|ARMTemplate/|package\.json|\.github/)"; then
+              HAS_ADF="true"
+            fi
+
+            if [ "$HAS_DATABRICKS" = "true" ] && [ "$HAS_ADF" = "false" ]; then
+              DEPLOY_DATABRICKS="true"
+              DECISION_REASON="Auto-detected: Only Databricks files changed"
+            elif [ "$HAS_ADF" = "true" ] && [ "$HAS_DATABRICKS" = "false" ]; then
+              DEPLOY_ADF="true"
+              DECISION_REASON="Auto-detected: Only ADF / Infrastructure files changed"
+            else
+              DEPLOY_ADF="true"
+              DEPLOY_DATABRICKS="true"
+              DECISION_REASON="Auto-detected: Both Databricks and ADF files changed (or shared root files)"
+            fi
+          fi
+
+          echo "deploy_adf=$DEPLOY_ADF" >> $GITHUB_OUTPUT
+          echo "deploy_databricks=$DEPLOY_DATABRICKS" >> $GITHUB_OUTPUT
+          echo "reason=$DECISION_REASON" >> $GITHUB_OUTPUT
+
+          echo "=========================================="
+          echo "DEPLOYMENT DECISION: $DECISION_REASON"
+          echo "  • Deploy ADF:        $DEPLOY_ADF"
+          echo "  • Deploy Databricks: $DEPLOY_DATABRICKS"
+          echo "=========================================="
+
+      # -------------------------------------------------------------------------
+      # ADF PIPELINE STEPS (Only execute if deploy_adf == 'true')
+      # -------------------------------------------------------------------------
       - name: Setup Node.js environment
+        if: steps.detect.outputs.deploy_adf == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
       - name: Install ADF Utilities
+        if: steps.detect.outputs.deploy_adf == 'true'
         run: npm install
 
       - name: Validate and Export ARM Templates
+        if: steps.detect.outputs.deploy_adf == 'true'
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
@@ -46,14 +157,13 @@ jobs:
           node node_modules/@microsoft/azure-data-factory-utilities/lib/index.js export "$GITHUB_WORKSPACE" "$FACTORY_ID" "build/adf-azureproject-dev-01"
 
       - name: Push ARM Templates to adf_publish branch
+        if: steps.detect.outputs.deploy_adf == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone adf_publish branch into a temporary directory
           git clone --depth 1 --branch adf_publish https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git publish-worktree
 
-          # Update factory folder with freshly generated ARM templates
           rm -rf publish-worktree/adf-azureproject-dev-01
           cp -r build/adf-azureproject-dev-01 publish-worktree/
 
@@ -68,18 +178,14 @@ jobs:
           fi
 
       - name: Login to Azure
-        if: ${{ env.HAVE_AZURE_CREDS == 'true' }}
-        env:
-          HAVE_AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: steps.detect.outputs.deploy_adf == 'true' && env.HAVE_AZURE_CREDS == 'true'
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           enable-AzPSSession: true
 
       - name: Deploy to Azure Data Factory Live Service
-        if: ${{ env.HAVE_AZURE_CREDS == 'true' }}
-        env:
-          HAVE_AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: steps.detect.outputs.deploy_adf == 'true' && env.HAVE_AZURE_CREDS == 'true'
         uses: Azure/data-factory-deploy-action@v1.2.0
         with:
           resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
@@ -87,7 +193,11 @@ jobs:
           armTemplateFile: ./build/adf-azureproject-dev-01/ARMTemplateForFactory.json
           armTemplateParametersFile: ./build/adf-azureproject-dev-01/ARMTemplateParametersForFactory.json
 
+      # -------------------------------------------------------------------------
+      # DATABRICKS GIT FOLDER STEP (Only execute if deploy_databricks == 'true')
+      # -------------------------------------------------------------------------
       - name: Auto-Pull in Databricks Git Folder
+        if: steps.detect.outputs.deploy_databricks == 'true'
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST || 'https://adb-7405612959366844.4.azuredatabricks.net' }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
@@ -110,8 +220,8 @@ jobs:
           echo "Databricks API Response: $BODY"
           if [ "$HTTP_STATUS" -eq 200 ]; then
             echo "Successfully updated Databricks Git Folder!"
-          elif echo "$BODY" | grep -q "GIT_CONFLICT"; then
-            echo "::warning::Databricks workspace has uncommitted edits. Skipping auto-pull to protect active user changes. Please pull manually in Databricks UI."
+          elif echo "$BODY" | grep -qiE "(GIT_CONFLICT|INVALID_STATE|rebase/merge)"; then
+            echo "::warning::Databricks workspace has uncommitted edits or is in a merge state ($BODY). Skipping auto-pull to protect active user changes. Please pull manually in Databricks UI."
             exit 0  # Do not break the pipeline
           else
             echo "::error::Databricks pull failed with HTTP status $HTTP_STATUS: $BODY"
